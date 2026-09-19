@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function shortText(v, max) {
+      return v is string && v.size() <= max;
+    }
+
+    // Admin accounts: created by the tools/create_admin.js script.
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Route data: public read, admin write.
+    match /sources/{sourceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /itineraires/{itineraireId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Reports ("signalements") made by hikers.
+    match /signalements/{id} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.auteurId == request.auth.uid
+        && request.resource.data.statut == 'signale'
+        && request.resource.data.votes == 1
+        && request.resource.data.voters == [request.auth.uid]
+        && shortText(request.resource.data.itineraireId, 200)
+        && shortText(request.resource.data.categorie, 40)
+        && shortText(request.resource.data.description, 1000)
+        && request.resource.data.position is latlng;
+
+      // Hikers may only "+1" once; admins may change anything.
+      allow update: if isAdmin() || (signedIn() && isVote());
+
+      allow delete: if isAdmin();
+
+      function isVote() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes', 'voters'])
+          && !(request.auth.uid in resource.data.voters)
+          && request.resource.data.voters == resource.data.voters.concat([request.auth.uid])
+          && request.resource.data.votes == resource.data.votes + 1;
+      }
+    }
+
+    // Points of interest proposed by hikers, validated by the admin.
+    match /elements/{id} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.auteurId == request.auth.uid
+        && request.resource.data.statut == 'en_attente'
+        && shortText(request.resource.data.itineraireId, 200)
+        && shortText(request.resource.data.categorie, 40)
+        && shortText(request.resource.data.titre, 120)
+        && shortText(request.resource.data.description, 1000)
+        && request.resource.data.position is latlng;
+
+      allow update, delete: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,43 @@
+# Secrets (Firebase service account keys)
+secret/
+*.serviceaccount.json
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Flutter / Dart
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/build/
+**/.idea/
+**/*.iml
+**/pubspec.lock
+!packages/rando_core/pubspec.lock
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.podspec
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+**/android/app/google-services.json
+**/ios/Runner/GoogleService-Info.plist
+**/macos/Runner/GoogleService-Info.plist
+
+# Firebase CLI
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs collected by the /apk, /aab and /ipa skills
+dist/
+
+# Android release signing
+**/android/keystore/

@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "rando-oise-a4efa"
+  },
+  "targets": {
+    "rando-oise-a4efa": {
+      "hosting": {
+        "admin": ["rando-oise-a4efa"]
+      }
+    }
+  }
+}

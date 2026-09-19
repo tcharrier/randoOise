@@ -1,0 +1,19 @@
+{
+  "name": "rando-oise-tools",
+  "version": "1.0.0",
+  "description": "Import de sources de randonnées et gestion des admins (Firebase Admin SDK)",
+  "scripts": {
+    "import": "node import_source.js",
+    "create-admin": "node create_admin.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "adm-zip": "^0.6.1",
+    "firebase-admin": "^14.4.0",
+    "proj4": "^2.22.0"
+  },
+  "private": true
+}
