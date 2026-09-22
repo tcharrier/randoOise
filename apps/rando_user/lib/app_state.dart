@@ -1,9 +1,10 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:rando_core/rando_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'main.dart' show ensureSignedIn;
 import 'services/favorites_service.dart';
@@ -13,17 +14,24 @@ import 'services/offline_service.dart';
 /// How the "origin" used to sort routes is chosen.
 enum OriginMode { gps, manual, none }
 
-/// Global app state: Firestore streams, favorites, origin, GPS position.
+/// Global app state: Firestore streams, favorites, origin, GPS position,
+/// appearance preferences.
 class AppState extends ChangeNotifier {
   AppState({
     required this.repository,
     required this.favorites,
     required this.offline,
-  });
+    required this.prefs,
+  })  : _themeMode = _themeFromString(prefs.getString(_kTheme)),
+        _displayName = prefs.getString(_kName) ?? '';
+
+  static const _kTheme = 'theme_mode';
+  static const _kName = 'display_name';
 
   final RandoRepository repository;
   final FavoritesService favorites;
   final OfflineService offline;
+  final SharedPreferences prefs;
   final LocationService location = LocationService();
 
   String? uid;
@@ -43,14 +51,41 @@ class AppState extends ChangeNotifier {
   String? sourceFilter;
   String search = '';
 
+  ThemeMode _themeMode;
+  String _displayName;
+
   final _subs = <StreamSubscription>[];
+
+  // ------------------------------------------------------------ appearance
+
+  ThemeMode get themeMode => _themeMode;
+  String get displayName => _displayName;
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    _themeMode = mode;
+    await prefs.setString(_kTheme, mode.name);
+    notifyListeners();
+  }
+
+  /// Switches between light and dark from the currently displayed brightness.
+  Future<void> toggleTheme(Brightness current) =>
+      setThemeMode(current == Brightness.dark ? ThemeMode.light : ThemeMode.dark);
+
+  Future<void> setDisplayName(String name) async {
+    _displayName = name.trim();
+    await prefs.setString(_kName, _displayName);
+    notifyListeners();
+  }
+
+  static ThemeMode _themeFromString(String? s) =>
+      ThemeMode.values.firstWhere((m) => m.name == s, orElse: () => ThemeMode.system);
+
+  // ----------------------------------------------------------- itineraires
 
   /// Routes of enabled sources, alphabetically sorted.
   List<Itineraire> get itineraires {
     final enabled = sources.where((s) => s.enabled).map((s) => s.id).toSet();
-    return _itineraires
-        .where((it) => sources.isEmpty || enabled.contains(it.sourceId))
-        .toList();
+    return _itineraires.where((it) => sources.isEmpty || enabled.contains(it.sourceId)).toList();
   }
 
   LatLng? get origin {
@@ -64,34 +99,47 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  /// Routes filtered by search / source and sorted by distance from origin
-  /// when one is known, otherwise by name.
-  List<Itineraire> get visibleItineraires {
-    final q = search.trim().toLowerCase();
-    var list = itineraires.where((it) {
-      if (sourceFilter != null && it.sourceId != sourceFilter) return false;
-      if (q.isEmpty) return true;
-      return it.nom.toLowerCase().contains(q) ||
-          it.communesLabel.toLowerCase().contains(q) ||
-          (it.depart ?? '').toLowerCase().contains(q);
-    }).toList();
+  String get originLabel => switch (originMode) {
+        OriginMode.gps => gpsPosition == null ? 'Position inconnue' : 'Depuis ma position',
+        OriginMode.manual => manualOrigin == null ? 'Choisir sur la carte' : 'Depuis le point choisi',
+        OriginMode.none => 'Tri par nom',
+      };
+
+  /// Routes sorted by distance from origin (or by name), without filters.
+  List<Itineraire> get sortedItineraires {
+    final list = [...itineraires];
     final o = origin;
     if (o != null) {
-      list.sort((a, b) =>
-          haversineM(o, a.start).compareTo(haversineM(o, b.start)));
+      list.sort((a, b) => haversineM(o, a.start).compareTo(haversineM(o, b.start)));
     } else {
       list.sort((a, b) => a.nom.toLowerCase().compareTo(b.nom.toLowerCase()));
     }
     return list;
   }
 
+  /// Routes filtered by search / source and sorted like [sortedItineraires].
+  List<Itineraire> get visibleItineraires {
+    final q = search.trim().toLowerCase();
+    return sortedItineraires.where((it) {
+      if (sourceFilter != null && it.sourceId != sourceFilter) return false;
+      if (q.isEmpty) return true;
+      return it.nom.toLowerCase().contains(q) ||
+          it.communesLabel.toLowerCase().contains(q) ||
+          (it.depart ?? '').toLowerCase().contains(q);
+    }).toList();
+  }
+
+  List<Itineraire> nearest({int limit = 5}) => sortedItineraires.take(limit).toList();
+
+  /// The route put forward on the home screen.
+  Itineraire? get suggested => sortedItineraires.isEmpty ? null : sortedItineraires.first;
+
   double? distanceFromOrigin(Itineraire it) {
     final o = origin;
     return o == null ? null : haversineM(o, it.start);
   }
 
-  List<Itineraire> get favoriteItineraires =>
-      itineraires.where((it) => favorites.contains(it.id)).toList();
+  List<Itineraire> get favoriteItineraires => itineraires.where((it) => favorites.contains(it.id)).toList();
 
   Itineraire? itineraireById(String id) {
     for (final it in _itineraires) {
@@ -103,48 +151,41 @@ class AppState extends ChangeNotifier {
   List<Signalement> signalementsFor(String itineraireId) =>
       signalements.where((s) => s.itineraireId == itineraireId).toList();
 
-  /// Validated points of interest plus the ones proposed by this device.
-  List<ElementRemarquable> elementsFor(String itineraireId,
-      {bool includeMine = true}) =>
-      elements
-          .where((e) =>
-              e.itineraireId == itineraireId &&
-              (e.isValide || (includeMine && e.isAuthor(uid))))
-          .toList();
+  List<Signalement> recentSignalements({int limit = 3}) => signalements.take(limit).toList();
 
-  List<ElementRemarquable> get validatedElements =>
-      elements.where((e) => e.isValide).toList();
+  /// Validated points of interest plus the ones proposed by this device.
+  List<ElementRemarquable> elementsFor(String itineraireId, {bool includeMine = true}) => elements
+      .where((e) => e.itineraireId == itineraireId && (e.isValide || (includeMine && e.isAuthor(uid))))
+      .toList();
+
+  List<ElementRemarquable> get validatedElements => elements.where((e) => e.isValide).toList();
+
+  // --------------------------------------------------------------- streams
 
   void start() {
     _subs.add(repository.sources.snapshots().listen((snap) {
-      sources = snap.docs
-          .map((d) => RandoSource.fromMap(d.id, d.data()))
-          .toList()
+      sources = snap.docs.map((d) => RandoSource.fromMap(d.id, d.data())).toList()
         ..sort((a, b) => a.name.compareTo(b.name));
       notifyListeners();
-    }, onError: (e) => _error(e)));
+    }, onError: _error));
 
-    _subs.add(repository.itineraires
-        .snapshots(includeMetadataChanges: true)
-        .listen((snap) {
-      _itineraires = snap.docs
-          .map((d) => Itineraire.fromMap(d.id, d.data()))
-          .toList();
+    _subs.add(repository.itineraires.snapshots(includeMetadataChanges: true).listen((snap) {
+      _itineraires = snap.docs.map((d) => Itineraire.fromMap(d.id, d.data())).toList();
       itinerairesLoaded = true;
       itinerairesFromCache = snap.metadata.isFromCache;
       loadError = null;
       notifyListeners();
-    }, onError: (e) => _error(e)));
+    }, onError: _error));
 
     _subs.add(repository.watchSignalements().listen((list) {
       signalements = list;
       notifyListeners();
-    }, onError: (e) => _error(e)));
+    }, onError: _error));
 
     _subs.add(repository.watchElements().listen((list) {
       elements = list;
       notifyListeners();
-    }, onError: (e) => _error(e)));
+    }, onError: _error));
 
     _subs.add(FirebaseAuth.instance.authStateChanges().listen((u) {
       uid = u?.uid;

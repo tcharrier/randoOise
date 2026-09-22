@@ -4,6 +4,7 @@ import 'package:rando_core/rando_core.dart';
 
 import '../app_state.dart';
 import '../util/format.dart';
+import 'ui.dart';
 
 /// A report in a list, with the "+1" button and its validation state.
 class SignalementTile extends StatelessWidget {
@@ -12,11 +13,13 @@ class SignalementTile extends StatelessWidget {
     required this.signalement,
     this.showItineraire = true,
     this.onTap,
+    this.compact = false,
   });
 
   final Signalement signalement;
   final bool showItineraire;
   final VoidCallback? onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -31,37 +34,25 @@ class SignalementTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+          padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: s.statut.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(s.categorie.icon, color: s.statut.color),
-              ),
+              IconBox(icon: s.categorie.icon, color: s.statut.color, size: 46, radius: 15),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(s.categorie.label,
-                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(s.categorie.label, style: theme.textTheme.titleMedium),
                     if (showItineraire)
                       Text(s.itineraireNom,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(color: scheme.primary)),
-                    if (s.description.isNotEmpty) ...[
+                          style: theme.textTheme.bodySmall?.copyWith(color: scheme.primary, fontWeight: FontWeight.w700)),
+                    if (s.description.isNotEmpty && !compact) ...[
                       const SizedBox(height: 4),
-                      Text(s.description,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium),
+                      Text(s.description, maxLines: 3, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium),
                     ],
                     const SizedBox(height: 8),
                     Wrap(
@@ -70,22 +61,15 @@ class SignalementTile extends StatelessWidget {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         StatusChip(
-                          label: s.statut == SignalementStatut.valide
-                              ? "Validé par l'ARC"
-                              : s.statut.label,
+                          label: s.statut == SignalementStatut.valide ? "Validé par l'ARC" : s.statut.label,
                           color: s.statut.color,
                           icon: s.statut == SignalementStatut.valide
-                              ? Icons.verified
-                              : (s.statut == SignalementStatut.enCours
-                                  ? Icons.construction
-                                  : Icons.schedule),
+                              ? Icons.verified_rounded
+                              : (s.statut == SignalementStatut.enCours ? Icons.construction_rounded : Icons.schedule_rounded),
                           dense: true,
                         ),
-                        Text(formatDate(s.createdAt),
-                            style: theme.textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
-                        if (s.isAuthor(state.uid))
-                          Text('Votre signalement',
-                              style: theme.textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
+                        Text(formatRelative(s.createdAt), style: theme.textTheme.labelSmall),
+                        if (s.isAuthor(state.uid)) Text('Par vous', style: theme.textTheme.labelSmall),
                       ],
                     ),
                   ],
@@ -124,25 +108,29 @@ class _VoteButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: voted ? scheme.primaryContainer : scheme.surfaceContainer,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onPressed,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(voted ? Icons.thumb_up : Icons.thumb_up_outlined,
-                  size: 20, color: voted ? scheme.onPrimaryContainer : scheme.onSurfaceVariant),
-              const SizedBox(height: 2),
-              Text('+$count',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: voted ? scheme.onPrimaryContainer : scheme.onSurface)),
-            ],
+    return Semantics(
+      button: true,
+      label: voted ? 'Vous avez confirmé ce signalement, $count confirmations' : 'Confirmer ce signalement, $count confirmations',
+      child: Material(
+        color: voted ? scheme.primaryContainer : scheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(voted ? Icons.thumb_up_rounded : Icons.thumb_up_outlined,
+                    size: 20, color: voted ? scheme.onPrimaryContainer : scheme.onSurface),
+                const SizedBox(height: 2),
+                Text('+$count',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: voted ? scheme.onPrimaryContainer : scheme.onSurface)),
+              ],
+            ),
           ),
         ),
       ),

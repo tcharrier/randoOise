@@ -88,3 +88,11 @@ cd packages/rando_core && flutter test
 
 ## Fond de carte
 L'app utilisateur propose le Plan IGN (Géoplateforme, sans clé) et OpenStreetMap ; le choix est dans Réglages. Les tuiles affichées sont conservées sur l'appareil, et chaque fiche propose « Télécharger la carte hors ligne ».
+
+## Aperçu de l'app utilisateur
+
+| Accueil (clair) | Accueil (sombre) | Fiche circuit | Carte (sombre) |
+|---|---|---|---|
+| ![Accueil clair](docs/screenshots/accueil-clair.png) | ![Accueil sombre](docs/screenshots/accueil-sombre.png) | ![Fiche circuit](docs/screenshots/fiche-circuit.png) | ![Carte sombre](docs/screenshots/carte-sombre.png) |
+
+Captures réalisées sur la version web (Chrome headless, 430 × 932). Police Inter (licence OFL, incluse dans `packages/rando_core/fonts`).

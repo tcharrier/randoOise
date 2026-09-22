@@ -2,9 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:rando_core/rando_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_state.dart';
 import 'firebase_options.dart';
@@ -22,12 +24,14 @@ Future<void> main() async {
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
 
+  final prefs = await SharedPreferences.getInstance();
   final favorites = await FavoritesService.load();
   final offline = await OfflineService.create();
   final state = AppState(
     repository: RandoRepository(FirebaseFirestore.instance),
     favorites: favorites,
     offline: offline,
+    prefs: prefs,
   );
   state.start();
 
@@ -44,11 +48,13 @@ class RandoOiseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = context.select<AppState, ThemeMode>((s) => s.themeMode);
     return MaterialApp(
       title: 'Rando Oise',
       debugShowCheckedModeBanner: false,
       theme: buildRandoTheme(),
       darkTheme: buildRandoTheme(brightness: Brightness.dark),
+      themeMode: themeMode,
       locale: const Locale('fr', 'FR'),
       supportedLocales: const [Locale('fr', 'FR'), Locale('en')],
       localizationsDelegates: const [
@@ -56,6 +62,16 @@ class RandoOiseApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      builder: (context, child) {
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: (dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark).copyWith(
+            statusBarColor: Colors.transparent,
+            systemNavigationBarColor: Colors.transparent,
+          ),
+          child: child!,
+        );
+      },
       home: const HomeScreen(),
     );
   }
