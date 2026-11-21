@@ -36,7 +36,12 @@ service cloud.firestore {
     match /signalements/{id} {
       allow read: if true;
 
+      // Only these keys are accepted: no free-form field (e-mail, name…)
+      // can be attached to a public report.
       allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['itineraireId', 'itineraireNom', 'sourceId',
+             'categorie', 'description', 'position', 'statut', 'auteurId', 'votes', 'voters',
+             'createdAt', 'updatedAt'])
         && request.resource.data.auteurId == request.auth.uid
         && request.resource.data.statut == 'signale'
         && request.resource.data.votes == 1
@@ -64,6 +69,8 @@ service cloud.firestore {
       allow read: if true;
 
       allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['itineraireId', 'itineraireNom', 'sourceId',
+             'categorie', 'titre', 'description', 'position', 'statut', 'auteurId', 'createdAt'])
         && request.resource.data.auteurId == request.auth.uid
         && request.resource.data.statut == 'en_attente'
         && shortText(request.resource.data.itineraireId, 200)

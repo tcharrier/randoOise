@@ -14,21 +14,31 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  flutter_map: ^8.3.2
   geolocator: ^14.0.3
   http: ^1.6.0
   latlong2: ^0.10.1
-  path_provider: ^2.1.6
+  maplibre_gl: 0.25.0
   provider: ^6.1.5+1
   rando_core:
     path: ../../packages/rando_core
   shared_preferences: ^2.5.5
   url_launcher: ^6.3.2
+  wakelock_plus: ^1.7.0
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
   flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/velo/itineraries_min.jsonl
+    - assets/velo/geoms.wkb
+    - assets/velo/meta.json
+    - assets/velo/plan_arc.json
+    - assets/styles/osm.json
+    - assets/styles/ign.json

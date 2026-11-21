@@ -12,7 +12,10 @@ class AdminData extends ChangeNotifier {
       notifyListeners();
     });
     _itinerairesSub = repo.watchItineraires().listen((v) {
-      itineraires = v;
+      // Secondary cycling segments (outside the numbered plan) are kept
+      // apart: drawn on the map, never listed.
+      itineraires = v.where((it) => !it.secondaire).toList();
+      secondaires = v.where((it) => it.secondaire).toList();
       notifyListeners();
     });
     _signalementsSub = repo.watchSignalements().listen((v) {
@@ -29,6 +32,7 @@ class AdminData extends ChangeNotifier {
 
   List<RandoSource> sources = [];
   List<Itineraire> itineraires = [];
+  List<Itineraire> secondaires = [];
   List<Signalement> signalements = [];
   List<ElementRemarquable> elements = [];
 
@@ -39,6 +43,9 @@ class AdminData extends ChangeNotifier {
 
   Itineraire? itineraireById(String id) {
     for (final it in itineraires) {
+      if (it.id == id) return it;
+    }
+    for (final it in secondaires) {
       if (it.id == id) return it;
     }
     return null;
@@ -53,6 +60,9 @@ class AdminData extends ChangeNotifier {
 
   int signalementCount(String itineraireId) =>
       signalements.where((s) => s.itineraireId == itineraireId).length;
+
+  int countByActivite(Activite activite) =>
+      itineraires.where((it) => it.activite == activite).length;
 
   int validatedElementCount(String itineraireId) => elements
       .where((e) => e.itineraireId == itineraireId && e.isValide)

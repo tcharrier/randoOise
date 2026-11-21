@@ -114,46 +114,7 @@ class SourceImporter {
       fileName: fileName,
     );
     // Stamp the resolved source id/name on each route.
-    final stamped = itineraires
-        .map((it) => Itineraire(
-              id: it.id,
-              sourceId: sourceId,
-              sourceName: sourceName,
-              nom: it.nom,
-              tracks: it.tracks,
-              start: it.start,
-              bounds: it.bounds,
-              pratique: it.pratique,
-              typeItineraire: it.typeItineraire,
-              communes: it.communes,
-              depart: it.depart,
-              arrivee: it.arrivee,
-              dureeH: it.dureeH,
-              balisage: it.balisage,
-              longueurM: it.longueurM,
-              difficulte: it.difficulte,
-              altMax: it.altMax,
-              altMin: it.altMin,
-              denivelePositif: it.denivelePositif,
-              deniveleNegatif: it.deniveleNegatif,
-              instructions: it.instructions,
-              presentation: it.presentation,
-              presentationCourte: it.presentationCourte,
-              themes: it.themes,
-              recommandations: it.recommandations,
-              accessibilite: it.accessibilite,
-              accesRoutier: it.accesRoutier,
-              transportsCommun: it.transportsCommun,
-              parkingInfo: it.parkingInfo,
-              parking: it.parking,
-              dateCreation: it.dateCreation,
-              dateModification: it.dateModification,
-              medias: it.medias,
-              typeSol: it.typeSol,
-              pdipr: it.pdipr,
-              url: it.url,
-            ))
-        .toList();
+    final stamped = itineraires.map((it) => it.copyWith(sourceId: sourceId, sourceName: sourceName)).toList();
     return ImportResult(source: source, itineraires: stamped, warnings: warnings);
   }
 

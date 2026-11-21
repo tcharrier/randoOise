@@ -18,6 +18,13 @@ String formatDate(DateTime? d, {bool time = true}) {
 String formatLongDate(DateTime d) =>
     '${_weekdays[d.weekday - 1]} ${d.day == 1 ? '1er' : d.day} ${_months[d.month - 1]}';
 
+const _weekdaysShort = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'];
+const _monthsShort = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+/// "dim. 25 oct." — fits a half-height tile.
+String formatShortDate(DateTime d) =>
+    '${_weekdaysShort[d.weekday - 1]} ${d.day == 1 ? '1er' : d.day} ${_monthsShort[d.month - 1]}';
+
 /// "il y a 3 h", "hier", "12/09"
 String formatRelative(DateTime? d) {
   if (d == null) return 'à l’instant';
@@ -28,6 +35,27 @@ String formatRelative(DateTime? d) {
   if (diff.inDays == 1) return 'hier';
   if (diff.inDays < 7) return 'il y a ${diff.inDays} jours';
   return '${two(d.day)}/${two(d.month)}';
+}
+
+/// "14h"
+String formatHour(DateTime d) => "${d.toLocal().hour}h";
+
+/// "1h05" / "12 min" from seconds.
+String formatDurationSeconds(int seconds) {
+  final h = seconds ~/ 3600;
+  final m = (seconds % 3600) ~/ 60;
+  if (h > 0) return "${h}h${two(m)}";
+  return "$m min";
+}
+
+/// "12,3 km/h"
+String formatSpeed(double kmh) => "${kmh.toStringAsFixed(1).replaceAll(".", ",")} km/h";
+
+/// Walking pace "12:30 /km" from km/h.
+String formatPace(double kmh) {
+  if (kmh <= 0.2) return "– /km";
+  final secPerKm = (3600 / kmh).round();
+  return "${secPerKm ~/ 60}:${two(secPerKm % 60)} /km";
 }
 
 String formatElapsed(Duration d) {

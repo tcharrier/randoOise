@@ -1,8 +1,11 @@
-/// Shared models, geo helpers, Firestore repository and theme for the
-/// Rando Oise user app and admin app.
+// Shared models, geo helpers, Firestore repository and theme for the
+// Rando Oise user app and admin app.
 
+export 'src/data/velo_dataset.dart';
 export 'src/geo/geo.dart';
+export 'src/geo/wkb.dart';
 export 'src/import/source_importer.dart';
+export 'src/models/activite.dart';
 export 'src/models/element_remarquable.dart';
 export 'src/models/itineraire.dart';
 export 'src/models/signalement.dart';

@@ -33,8 +33,10 @@ class ItineraireDetail extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Icon(it.activite.icon, color: it.activite.color, size: 22),
+            const SizedBox(width: 8),
             Expanded(
-              child: Text(it.nom,
+              child: Text(it.titre,
                   style: textTheme.headlineSmall
                       ?.copyWith(fontWeight: FontWeight.w700)),
             ),
@@ -42,7 +44,7 @@ class ItineraireDetail extends StatelessWidget {
               IconButton(onPressed: onClose, icon: const Icon(Icons.close)),
           ],
         ),
-        Text('Source : ${it.sourceName}',
+        Text('Source : ${it.sourceName} · ${it.activite.label}',
             style: textTheme.bodyMedium
                 ?.copyWith(color: RandoColors.inkMuted)),
         const SizedBox(height: 14),
@@ -56,7 +58,24 @@ class ItineraireDetail extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            DifficultyChip(it.difficulte),
+            if (it.isVelo) ...[
+              if (it.numero != null && it.numero!.isNotEmpty)
+                StatusChip(
+                    label: it.numero!,
+                    color: it.activite.color,
+                    icon: Icons.confirmation_number_outlined),
+              if (it.statutReseau != null)
+                StatusChip(
+                    label: it.statutReseau!.label,
+                    color: it.statutReseau!.color,
+                    icon: Icons.info_outline),
+              if (it.niveau != null && it.niveau!.isNotEmpty)
+                StatusChip(
+                    label: _capitalize(it.niveau!),
+                    color: RandoColors.inkSoft,
+                    icon: Icons.account_tree_outlined),
+            ] else
+              DifficultyChip(it.difficulte),
             StatusChip(
                 label: formatDistance(it.lengthM),
                 color: RandoColors.forest,
@@ -120,8 +139,12 @@ class ItineraireDetail extends StatelessWidget {
               _kv('Altitude min / max', it.altMin == null && it.altMax == null
                   ? null
                   : '${it.altMin?.round() ?? '–'} m / ${it.altMax?.round() ?? '–'} m'),
-              _kv('Départ', it.depart),
-              _kv('Arrivée', it.arrivee),
+              if (it.isVelo)
+                _kv('Trajet', it.trajetLabel)
+              else ...[
+                _kv('Départ', it.depart),
+                _kv('Arrivée', it.arrivee),
+              ],
             ],
           ),
         ),
@@ -172,6 +195,9 @@ class ItineraireDetail extends StatelessWidget {
       ],
     );
   }
+
+  String _capitalize(String s) =>
+      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 
   Widget _kv(String label, String? value) {
     if (value == null || value.isEmpty) return const SizedBox.shrink();

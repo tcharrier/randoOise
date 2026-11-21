@@ -11,9 +11,10 @@ import '../widgets/route_map.dart';
 import '../widgets/signalement_tile.dart';
 import '../widgets/ui.dart';
 import 'element_form_screen.dart';
+import 'navigation_screen.dart';
 import 'sheets.dart';
 import 'signalement_form_screen.dart';
-import 'tracking_screen.dart';
+import 'sorties_screen.dart';
 
 class ItineraireDetailScreen extends StatelessWidget {
   const ItineraireDetailScreen({super.key, required this.itineraireId});
@@ -34,11 +35,16 @@ class ItineraireDetailScreen extends StatelessWidget {
     final elements = state.elementsFor(it.id);
     final validated = elements.where((e) => e.isValide).length;
     final distance = state.distanceFromOrigin(it);
-    final color = DifficultyStyle.color(it.difficulte);
+    final velo = it.isVelo;
 
-    void openTracking() => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => TrackingScreen(itineraireId: it.id)),
+    void openNavigation() => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => NavigationScreen(itineraireId: it.id)),
         );
+
+    final subtitle = [
+      if (velo) it.trajetLabel ?? it.sourceName else if (it.communesLabel.isNotEmpty) it.communesLabel else it.sourceName,
+      if (distance != null) 'à ${formatDistance(distance)}',
+    ].whereType<String>().join(' · ');
 
     return Scaffold(
       body: SafeArea(
@@ -58,23 +64,17 @@ class ItineraireDetailScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            Text(it.nom, style: theme.textTheme.displaySmall),
+            Text(it.titre, style: theme.textTheme.displaySmall),
             const SizedBox(height: 6),
-            Text(
-              [
-                if (it.communesLabel.isNotEmpty) it.communesLabel else it.sourceName,
-                if (distance != null) 'à ${formatDistance(distance)}',
-              ].join(' · '),
-              style: theme.textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
-            ),
+            Text(subtitle, style: theme.textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant)),
             const SizedBox(height: 16),
 
             // Map card
             Semantics(
               button: true,
-              label: 'Ouvrir la carte et le suivi GPS',
+              label: 'Ouvrir la carte et suivre l’itinéraire',
               child: GestureDetector(
-                onTap: openTracking,
+                onTap: openNavigation,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(RandoRadius.card),
                   child: SizedBox(
@@ -84,21 +84,20 @@ class ItineraireDetailScreen extends StatelessWidget {
                       children: [
                         RouteMap(
                           itineraires: [it],
-                          highlighted: it,
-                          signalements: state.showSignalementsOnMap ? signalements : const [],
-                          elements: state.showElementsOnMap ? elements.where((e) => e.isValide).toList() : const [],
+                          highlightedId: it.id,
+                          markers: [
+                            if (state.showSignalementsOnMap) for (final s in signalements) signalementMarker(s),
+                            if (state.showElementsOnMap) for (final e in elements.where((e) => e.isValide)) elementMarker(e),
+                          ],
                           interactive: false,
+                          fitPadding: const EdgeInsets.all(30),
                         ),
                         Positioned(
                           left: 12,
                           top: 12,
-                          child: MapLabel('${formatDistance(it.lengthM)} · ${formatDurationH(it.dureeH)}', icon: Icons.route_rounded),
+                          child: MapLabel('${formatDistance(it.lengthM)} · ${formatDurationH(it.dureeH)}', icon: it.activite.icon),
                         ),
-                        Positioned(
-                          right: 12,
-                          bottom: 12,
-                          child: MapLabel('Agrandir', icon: Icons.open_in_full_rounded),
-                        ),
+                        const Positioned(right: 12, bottom: 12, child: MapLabel('Agrandir', icon: Icons.open_in_full_rounded)),
                       ],
                     ),
                   ),
@@ -112,21 +111,25 @@ class ItineraireDetailScreen extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                StatusChip(label: DifficultyStyle.label(it.difficulte), color: color, icon: difficultyIcon(it.difficulte)),
+                ActiviteChip(it.activite, dense: false),
+                RouteStatusChip(it, dense: false),
                 if (it.typeItineraire != null) StatusChip(label: it.typeItineraire!, color: RandoColors.inkSoft, icon: Icons.loop_rounded),
-                if (it.pratique != null) StatusChip(label: it.pratique!, color: RandoColors.inkSoft, icon: Icons.directions_walk_rounded),
+                if (velo && it.niveau != null)
+                  StatusChip(label: it.niveau == 'intercommunal' ? 'Intercommunal' : 'Communal', color: RandoColors.velo, icon: Icons.location_city_rounded),
+                if (!velo && it.pratique != null) StatusChip(label: it.pratique!, color: RandoColors.inkSoft, icon: Icons.directions_walk_rounded),
                 if (it.balisage != null) StatusChip(label: 'Balisage ${it.balisage}', color: RandoColors.ochre, icon: Icons.signpost_outlined),
                 if (it.pdipr) const StatusChip(label: 'Inscrit au PDIPR', color: RandoColors.green, icon: Icons.verified_outlined),
               ],
             ),
             const SizedBox(height: 18),
             FilledButton(
-              onPressed: openTracking,
+              onPressed: openNavigation,
+              style: velo ? FilledButton.styleFrom(backgroundColor: RandoColors.velo, foregroundColor: Colors.white) : null,
               child: Row(
                 children: [
                   const Icon(Icons.navigation_rounded, size: 20),
                   const SizedBox(width: 10),
-                  const Expanded(child: Text('Démarrer le suivi GPS')),
+                  Expanded(child: Text(velo ? 'Suivre la piste' : 'Suivre l’itinéraire')),
                   Text(formatDistance(it.lengthM), style: theme.textTheme.labelLarge?.copyWith(color: Colors.white70)),
                   const SizedBox(width: 6),
                   const Icon(Icons.chevron_right_rounded),
@@ -172,6 +175,24 @@ class ItineraireDetailScreen extends StatelessWidget {
             const SectionHeader('Infos pratiques'),
             ..._practical(it),
 
+            AnimatedBuilder(
+              animation: state.sorties,
+              builder: (context, _) {
+                final mine = state.sorties.forItineraire(it.id);
+                if (mine.isEmpty) return const SizedBox.shrink();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SectionHeader('Tes sorties ici · ${mine.length}'),
+                    for (final s in mine.take(3)) ...[
+                      SortieTile(sortie: s),
+                      const SizedBox(height: 10),
+                    ],
+                  ],
+                );
+              },
+            ),
+
             SectionHeader('Signalements · ${signalements.length}'),
             if (signalements.isEmpty)
               Text('Aucun signalement sur ce circuit.', style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
@@ -195,9 +216,13 @@ class ItineraireDetailScreen extends StatelessWidget {
   }
 
   List<Widget> _practical(Itineraire it) {
+    final velo = it.isVelo;
     final rows = <(IconData, Color, String, String)>[
       if (it.depart != null) (Icons.play_circle_outline_rounded, RandoColors.green, 'Départ', it.depart!),
       if (it.arrivee != null && it.arrivee != it.depart) (Icons.flag_rounded, RandoColors.green, 'Arrivée', it.arrivee!),
+      if (velo && it.statutReseau != null) (Icons.traffic_rounded, it.statutReseau!.color, 'État de la piste', it.statutReseau!.label),
+      if (velo)
+        (Icons.speed_rounded, RandoColors.velo, 'Durée estimée', '${formatDurationH(it.dureeH)} à ${VeloDataset.speedKmh.round()} km/h de moyenne'),
       if (it.parkingInfo != null) (Icons.local_parking_rounded, RandoColors.blue, 'Parking', it.parkingInfo!),
       if (it.transportsCommun != null) (Icons.directions_bus_rounded, RandoColors.blue, 'Transports en commun', it.transportsCommun!),
       if (it.accesRoutier != null) (Icons.directions_car_rounded, RandoColors.blue, 'Accès routier', it.accesRoutier!),
@@ -205,11 +230,11 @@ class ItineraireDetailScreen extends StatelessWidget {
       if (it.recommandations != null) (Icons.tips_and_updates_rounded, RandoColors.ochre, 'Recommandations', it.recommandations!),
       if (it.typeSol != null) (Icons.layers_rounded, RandoColors.ochre, 'Type de sol', it.typeSol!),
       if (it.themes.isNotEmpty) (Icons.label_rounded, RandoColors.inkSoft, 'Thèmes', it.themes.join(', ')),
-      if (it.altMin != null && it.altMax != null)
+      if (it.altMin != null && it.altMax != null && it.altMax! > 0)
         (Icons.height_rounded, RandoColors.inkSoft, 'Altitude', '${it.altMin!.round()} m – ${it.altMax!.round()} m'),
       if (it.dateModification != null || it.dateCreation != null)
         (Icons.update_rounded, RandoColors.inkSoft, 'Mise à jour', it.dateModification ?? it.dateCreation!),
-      (Icons.source_rounded, RandoColors.inkSoft, 'Source', it.sourceName),
+      (Icons.source_rounded, RandoColors.inkSoft, 'Source', it.embedded ? '${it.sourceName} · intégré à l’app' : it.sourceName),
     ];
     return [
       for (final (icon, color, title, value) in rows) ...[
@@ -220,7 +245,7 @@ class ItineraireDetailScreen extends StatelessWidget {
         InfoRowCard(
           icon: Icons.link_rounded,
           color: RandoColors.blue,
-          title: 'Fiche en ligne',
+          title: 'Données en ligne',
           subtitle: it.url,
           chevron: true,
           onTap: () => launchUrl(Uri.parse(it.url!), mode: LaunchMode.externalApplication),
@@ -237,9 +262,10 @@ class _StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = <(IconData, String, String)>[
       (Icons.straighten_rounded, 'Distance', formatDistance(it.lengthM)),
-      (Icons.schedule_rounded, 'Durée', formatDurationH(it.dureeH)),
+      (Icons.schedule_rounded, it.isVelo ? 'À 18 km/h' : 'Durée', formatDurationH(it.dureeH)),
       if (it.denivelePositif != null) (Icons.trending_up_rounded, 'Dénivelé +', '${it.denivelePositif!.round()} m'),
       if (it.deniveleNegatif != null) (Icons.trending_down_rounded, 'Dénivelé −', '${it.deniveleNegatif!.round()} m'),
+      if (it.isVelo && it.denivelePositif == null) (Icons.route_rounded, 'Tronçons', '${it.tracks.length}'),
     ];
     final theme = Theme.of(context);
     return Card(
@@ -251,7 +277,7 @@ class _StatsRow extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    Icon(icon, color: theme.colorScheme.primary),
+                    Icon(icon, color: it.isVelo ? RandoColors.velo : theme.colorScheme.primary),
                     const SizedBox(height: 6),
                     Text(value, style: theme.textTheme.titleMedium, textAlign: TextAlign.center),
                     Text(label, style: theme.textTheme.labelSmall, textAlign: TextAlign.center),
@@ -265,6 +291,9 @@ class _StatsRow extends StatelessWidget {
   }
 }
 
+/// "Enregistrer hors ligne" toggle: downloads the map area of the route
+/// with MapLibre offline regions. Embedded cycling routes already carry
+/// their track; the map tiles can still be saved.
 class _OfflineButton extends StatelessWidget {
   const _OfflineButton({required this.it});
   final Itineraire it;
@@ -275,45 +304,74 @@ class _OfflineButton extends StatelessWidget {
     return AnimatedBuilder(
       animation: offline,
       builder: (context, _) {
-        final scheme = Theme.of(context).colorScheme;
+        final theme = Theme.of(context);
+        final scheme = theme.colorScheme;
+        if (!OfflineService.supported) {
+          return Text('Le hors-ligne est disponible dans l’application mobile.', style: theme.textTheme.bodySmall);
+        }
+        Widget button;
         if (offline.isDownloading(it.id)) {
           final p = offline.progress[it.id] ?? 0;
-          return OutlinedButton(
-            onPressed: () => offline.cancel(it.id),
+          button = OutlinedButton(
+            onPressed: null,
             child: Row(
               children: [
-                SizedBox(width: 20, height: 20, child: CircularProgressIndicator(value: p, strokeWidth: 2.5)),
+                SizedBox(width: 20, height: 20, child: CircularProgressIndicator(value: p == 0 ? null : p, strokeWidth: 2.5)),
                 const SizedBox(width: 12),
-                Expanded(child: Text('Téléchargement… ${(p * 100).round()} %')),
-                const Text('Annuler'),
+                Expanded(child: Text('Téléchargement de la carte… ${(p * 100).round()} %')),
               ],
             ),
           );
-        }
-        if (offline.isDownloaded(it.id)) {
-          return OutlinedButton.icon(
-            onPressed: () => _download(context, offline),
+        } else if (offline.isSaved(it.id)) {
+          button = OutlinedButton.icon(
+            onPressed: () => _forget(context, offline),
             icon: Icon(Icons.offline_pin_rounded, color: scheme.primary),
-            label: const Text('Disponible hors ligne · mettre à jour'),
+            label: const Text('Enregistré hors ligne · retirer'),
+          );
+        } else {
+          button = OutlinedButton.icon(
+            onPressed: () => _save(context, offline),
+            icon: const Icon(Icons.download_rounded),
+            label: const Text('Enregistrer la carte hors ligne'),
           );
         }
-        return OutlinedButton.icon(
-          onPressed: () => _download(context, offline),
-          icon: const Icon(Icons.download_rounded),
-          label: const Text('Télécharger la carte hors ligne'),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            button,
+            if (it.embedded)
+              Padding(
+                padding: const EdgeInsets.only(top: 6, left: 4),
+                child: Text('Le tracé de cette piste est intégré à l’app : il reste disponible sans réseau.',
+                    style: theme.textTheme.bodySmall),
+              ),
+          ],
         );
       },
     );
   }
 
-  Future<void> _download(BuildContext context, OfflineService offline) async {
+  Future<void> _save(BuildContext context, OfflineService offline) async {
     final messenger = ScaffoldMessenger.of(context);
-    final ok = await offline.download(it);
+    final res = await offline.save(it);
     messenger.showSnackBar(SnackBar(
-      content: Text(ok
-          ? 'Carte enregistrée : ce circuit est utilisable sans réseau.'
-          : 'Téléchargement incomplet. Réessaie avec une meilleure connexion.'),
+      content: Text(res.message),
     ));
+  }
+
+  Future<void> _forget(BuildContext context, OfflineService offline) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Retirer la carte hors ligne ?'),
+        content: Text('Les tuiles de carte de « ${it.titre} » seront supprimées de l’appareil.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Retirer')),
+        ],
+      ),
+    );
+    if (ok == true) await offline.forget(it.id);
   }
 }
 

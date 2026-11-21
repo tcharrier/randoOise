@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:rando_core/rando_core.dart';
 
 import '../app_state.dart';
 import 'route_map.dart';
+import 'ui.dart';
 
 /// Small map used by the forms to pick the location of a report / point of
 /// interest: tap to place the marker, or use the GPS button.
@@ -26,14 +26,8 @@ class PositionPicker extends StatefulWidget {
 }
 
 class _PositionPickerState extends State<PositionPicker> {
-  final _map = MapController();
+  final _mapKey = GlobalKey<RouteMapState>();
   bool _locating = false;
-
-  @override
-  void dispose() {
-    _map.dispose();
-    super.dispose();
-  }
 
   Future<void> _useGps() async {
     setState(() => _locating = true);
@@ -43,12 +37,12 @@ class _PositionPickerState extends State<PositionPicker> {
     setState(() => _locating = false);
     if (p == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Position GPS indisponible. Touchez la carte pour placer le point.'),
+        content: Text('Position GPS indisponible. Touche la carte pour placer le point.'),
       ));
       return;
     }
     widget.onChanged(p);
-    _map.move(p, 16);
+    _mapKey.currentState?.moveTo(p, 16);
   }
 
   @override
@@ -67,33 +61,38 @@ class _PositionPickerState extends State<PositionPicker> {
             child: Stack(
               children: [
                 RouteMap(
-                  controller: _map,
+                  key: _mapKey,
                   itineraires: it == null ? const [] : [it],
-                  highlighted: it,
+                  highlightedId: it?.id,
                   showStartMarkers: false,
-                  pickedPoint: v,
+                  markers: [
+                    if (v != null)
+                      MapMarker(id: 'picked', position: v, color: RandoColors.red, icon: Icons.place_rounded, size: 36),
+                  ],
                   initialCenter: v,
                   initialZoom: 15,
+                  fitPadding: const EdgeInsets.all(30),
                   onMapTap: widget.onChanged,
                 ),
                 Positioned(
                   right: 8,
                   top: 8,
-                  child: Material(
-                    color: scheme.surface,
-                    elevation: 2,
-                    borderRadius: BorderRadius.circular(12),
-                    child: _locating
-                        ? const Padding(
-                            padding: EdgeInsets.all(12),
+                  child: _locating
+                      ? Material(
+                          color: scheme.surface,
+                          shape: const CircleBorder(),
+                          child: const Padding(
+                            padding: EdgeInsets.all(14),
                             child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                          )
-                        : IconButton(
-                            tooltip: 'Utiliser ma position GPS',
-                            icon: const Icon(Icons.my_location),
-                            onPressed: _useGps,
                           ),
-                  ),
+                        )
+                      : RoundIconButton(
+                          icon: Icons.my_location_rounded,
+                          label: 'Utiliser ma position GPS',
+                          size: 48,
+                          elevated: true,
+                          onPressed: _useGps,
+                        ),
                 ),
               ],
             ),
@@ -102,7 +101,7 @@ class _PositionPickerState extends State<PositionPicker> {
         const SizedBox(height: 6),
         Text(
           v == null
-              ? 'Touchez la carte pour placer le point, ou utilisez le GPS.'
+              ? 'Touche la carte pour placer le point, ou utilise le GPS.'
               : 'Point placé${offTrack == null ? '' : ' à ${formatDistance(offTrack)} du tracé'}.',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
         ),

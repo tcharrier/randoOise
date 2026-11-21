@@ -9,7 +9,10 @@ import 'sheets.dart';
 import 'signalement_form_screen.dart';
 
 class SignalementsScreen extends StatefulWidget {
-  const SignalementsScreen({super.key});
+  const SignalementsScreen({super.key, this.onlyMine = false});
+
+  /// Preselects the « Les miens » filter (used by the profile entry).
+  final bool onlyMine;
 
   @override
   State<SignalementsScreen> createState() => _SignalementsScreenState();
@@ -18,7 +21,7 @@ class SignalementsScreen extends StatefulWidget {
 class _SignalementsScreenState extends State<SignalementsScreen> {
   SignalementStatut? _statut;
   String? _itineraireId;
-  bool _onlyMine = false;
+  late bool _onlyMine = widget.onlyMine;
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +42,8 @@ class _SignalementsScreenState extends State<SignalementsScreen> {
         child: Column(
           children: [
             PageHeader(
-              title: 'Signalements',
-              subtitle: 'Problèmes remontés par les randonneurs, traités par l’ARC.',
+              title: widget.onlyMine ? 'Mes signalements' : 'Signalements',
+              subtitle: widget.onlyMine ? 'Ceux que tu as envoyés depuis cet appareil.' : 'Informations partagées par les randonneurs et cyclistes.',
               leading: RoundIconButton(icon: Icons.arrow_back_rounded, label: 'Retour', onPressed: () => Navigator.of(context).pop()),
             ),
             SizedBox(
@@ -85,7 +88,7 @@ class _SignalementsScreenState extends State<SignalementsScreen> {
                   ? const EmptyState(
                       icon: Icons.check_circle_outline_rounded,
                       title: 'Aucun signalement',
-                      subtitle: 'Un problème sur un sentier ? Signale-le pour prévenir les autres randonneurs et l’ARC.',
+                      subtitle: 'Un problème sur un sentier ? Signale-le pour prévenir les autres randonneurs et cyclistes.',
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 112),

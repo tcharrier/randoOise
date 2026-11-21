@@ -130,12 +130,15 @@ class SectionHeader extends StatelessWidget {
 
 /// Translucent stat pill used inside the hero card.
 class StatPill extends StatelessWidget {
-  const StatPill({super.key, required this.icon, required this.label, required this.value, this.onDark = false});
+  const StatPill({super.key, required this.icon, required this.label, required this.value, this.onDark = false, this.dense = false});
 
   final IconData icon;
   final String label;
   final String value;
   final bool onDark;
+
+  /// Tighter padding; texts ellipsize so the pill can live in a flexible row.
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -143,23 +146,25 @@ class StatPill extends StatelessWidget {
     final fg = onDark ? Colors.white : theme.colorScheme.onSurface;
     final soft = onDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: dense ? 9 : 12, vertical: dense ? 8 : 10),
       decoration: BoxDecoration(
         color: (onDark ? Colors.white : Colors.white).withValues(alpha: onDark ? 0.14 : 0.72),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RandoRadius.tile),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: fg),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label, style: theme.textTheme.labelSmall?.copyWith(color: soft)),
-              Text(value, style: theme.textTheme.titleSmall?.copyWith(color: fg)),
-            ],
+          Icon(icon, size: dense ? 16 : 18, color: fg),
+          SizedBox(width: dense ? 6 : 8),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(color: soft)),
+                Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall?.copyWith(color: fg)),
+              ],
+            ),
           ),
         ],
       ),

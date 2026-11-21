@@ -207,6 +207,35 @@ class _SourcesScreenState extends State<SourcesScreen> {
                     },
                   ),
           ),
+          const Padding(
+            padding: EdgeInsets.only(top: 12),
+            child: _CycloNote(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Reminder that cycling routes are not imported through this screen.
+class _CycloNote extends StatelessWidget {
+  const _CycloNote();
+
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+      text: const TextSpan(
+        style: TextStyle(color: RandoColors.inkMuted, fontSize: 12, height: 1.4),
+        children: [
+          TextSpan(text: '« Les pistes cyclables (source '),
+          TextSpan(text: 'arc-velo', style: TextStyle(fontWeight: FontWeight.w700)),
+          TextSpan(text: ') sont importées avec '),
+          TextSpan(
+              text: 'node tools/import_cyclo.js',
+              style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600)),
+          TextSpan(
+              text:
+                  " ; l'application mobile embarque ce jeu de données. »"),
         ],
       ),
     );
@@ -246,6 +275,12 @@ class _SourceRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
+            StatusChip(
+                label: s.activite.label,
+                color: s.activite.color,
+                icon: s.activite.icon,
+                dense: true),
+            const SizedBox(width: 12),
             const Text('Actif'),
             Switch(
               value: s.enabled,

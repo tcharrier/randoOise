@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:rando_core/rando_core.dart';
 
 import '../app_state.dart';
+import '../widgets/auth_banner.dart';
 import '../widgets/position_picker.dart';
 
 class SignalementFormScreen extends StatefulWidget {
@@ -18,7 +19,6 @@ class SignalementFormScreen extends StatefulWidget {
 
 class _SignalementFormScreenState extends State<SignalementFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _description = TextEditingController();
   Itineraire? _itineraire;
   SignalementCategorie _categorie = SignalementCategorie.obstacle;
   LatLng? _position;
@@ -29,6 +29,8 @@ class _SignalementFormScreenState extends State<SignalementFormScreen> {
     super.initState();
     _itineraire = widget.itineraire;
     _position = widget.initialPosition;
+    // Sign in before the user can submit (no-op once signed in).
+    WidgetsBinding.instance.addPostFrameCallback((_) => context.read<AppState>().requireUid());
     if (_position == null) _initPosition();
   }
 
@@ -49,7 +51,6 @@ class _SignalementFormScreenState extends State<SignalementFormScreen> {
 
   @override
   void dispose() {
-    _description.dispose();
     super.dispose();
   }
 
@@ -68,20 +69,19 @@ class _SignalementFormScreenState extends State<SignalementFormScreen> {
     final ok = await state.createSignalement(
       itineraire: _itineraire!,
       categorie: _categorie,
-      description: _description.text.trim(),
       position: _position!,
     );
     if (!mounted) return;
     setState(() => _sending = false);
     if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Une première connexion internet est nécessaire pour activer les signalements.'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(state.authError ?? 'Envoi impossible pour le moment.'),
       ));
       return;
     }
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Signalement enregistré. Il sera transmis dès qu’une connexion est disponible.'),
+      content: Text('Signalement enregistré. Il sera visible par les autres dès qu’une connexion est disponible.'),
     ));
   }
 
@@ -96,8 +96,9 @@ class _SignalementFormScreenState extends State<SignalementFormScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
+            const AuthBanner(),
             Text(
-              'Votre signalement est visible par les autres randonneurs et transmis à l’ARC pour traitement.',
+              'Information communautaire : ton signalement est visible par les autres randonneurs et cyclistes. Il n’est pas transmis aux services de la collectivité.',
               style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 16),
@@ -132,20 +133,7 @@ class _SignalementFormScreenState extends State<SignalementFormScreen> {
               ],
               onChanged: (v) => setState(() => _categorie = v ?? _categorie),
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _description,
-              maxLines: 4,
-              maxLength: 1000,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                hintText: 'Décrivez le problème (arbre en travers, panneau cassé…)',
-                alignLabelWithHint: true,
-              ),
-              validator: (v) => (v == null || v.trim().length < 5) ? 'Décrivez le problème en quelques mots' : null,
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             Text('Position du problème', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             PositionPicker(

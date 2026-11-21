@@ -61,7 +61,7 @@ class SignalementTile extends StatelessWidget {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         StatusChip(
-                          label: s.statut == SignalementStatut.valide ? "Validé par l'ARC" : s.statut.label,
+                          label: s.statut == SignalementStatut.valide ? 'Validé' : s.statut.label,
                           color: s.statut.color,
                           icon: s.statut == SignalementStatut.valide
                               ? Icons.verified_rounded
@@ -79,6 +79,7 @@ class SignalementTile extends StatelessWidget {
               _VoteButton(
                 count: s.votes,
                 voted: voted,
+                mine: s.isAuthor(state.uid),
                 onPressed: voted ? null : () => _vote(context, state, s),
               ),
             ],
@@ -93,16 +94,17 @@ class SignalementTile extends StatelessWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(ok
-          ? 'Merci, votre +1 a été pris en compte.'
-          : 'Impossible de voter pour le moment (connexion requise la première fois).'),
+          ? 'Merci, ton +1 a été pris en compte.'
+          : (state.authError ?? 'Impossible de voter pour le moment.')),
     ));
   }
 }
 
 class _VoteButton extends StatelessWidget {
-  const _VoteButton({required this.count, required this.voted, this.onPressed});
+  const _VoteButton({required this.count, required this.voted, this.mine = false, this.onPressed});
   final int count;
   final bool voted;
+  final bool mine;
   final VoidCallback? onPressed;
 
   @override
@@ -110,7 +112,7 @@ class _VoteButton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
-      label: voted ? 'Vous avez confirmé ce signalement, $count confirmations' : 'Confirmer ce signalement, $count confirmations',
+      label: mine ? 'Ton signalement, $count confirmations' : voted ? 'Tu as confirmé ce signalement, $count confirmations' : 'Confirmer ce signalement, $count confirmations',
       child: Material(
         color: voted ? scheme.primaryContainer : scheme.surfaceContainer,
         borderRadius: BorderRadius.circular(16),

@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 // Creates (or updates) an admin account for the admin web app.
 //
-//   node tools/create_admin.js admin@example.org "motDePasse" [--key secret/sa.json]
+//   node tools/create_admin.js admin admin [--key secret/sa.json]
 //
+// Identifier without '@' -> <identifiant>@rando-oise.app ; password shorter
+// than 6 chars is padded with '#' (admin -> admin#). Same mapping as
+// adminCredentials() in apps/rando_admin/lib/session.dart.
 // Requires Firebase Authentication (Email/Password) to be enabled in the
 // Firebase console. The user is created in Firebase Auth and an
 // admins/{uid} document is written; the Firestore rules grant admin rights to
@@ -16,10 +19,13 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { getAuth } = require('firebase-admin/auth');
 
 const args = process.argv.slice(2);
-const [email, password] = args.filter((a) => !a.startsWith('--'));
+const positional = args.filter((a, i) => !a.startsWith('--') && args[i - 1] !== '--key');
+const [identifiant, motDePasse] = positional;
+const email = identifiant && (identifiant.includes('@') ? identifiant.trim() : `${identifiant.trim()}@rando-oise.app`);
+const password = motDePasse && (motDePasse.length < 6 ? motDePasse.padEnd(6, '#') : motDePasse);
 const keyIdx = args.indexOf('--key');
-if (!email || !password) {
-  console.error('Usage: node tools/create_admin.js <email> <motdepasse> [--key sa.json]');
+if (!identifiant || !motDePasse) {
+  console.error('Usage: node tools/create_admin.js <identifiant> <motdepasse> [--key sa.json]');
   process.exit(1);
 }
 
@@ -49,4 +55,13 @@ function findKey(explicit) {
     createdAt: FieldValue.serverTimestamp(),
   }, { merge: true });
   console.log(`admins/${user.uid} écrit. Connexion possible sur l'app admin avec ${email}.`);
-})().catch((e) => { console.error(e); process.exit(1); });
+})().catch((e) => {
+  const code = String((e && (e.code || (e.errorInfo && e.errorInfo.code))) || '');
+  if (code.includes('configuration-not-found') || code.includes('operation-not-allowed') ||
+      String(e && e.message).includes('CONFIGURATION_NOT_FOUND')) {
+    console.error('Authentification Firebase non activée : dans la console Firebase, Authentication → Commencer, puis activer “E‑mail/mot de passe” et “Anonyme”.');
+    process.exit(2);
+  }
+  console.error(e);
+  process.exit(1);
+});

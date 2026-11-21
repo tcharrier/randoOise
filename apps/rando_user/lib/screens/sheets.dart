@@ -16,6 +16,7 @@ Future<void> showSignalementSheet(BuildContext context, Signalement s) {
       builder: (ctx, state, _) {
         final live = state.signalements.firstWhere((x) => x.id == s.id, orElse: () => s);
         final it = state.itineraireById(live.itineraireId);
+        final mine = live.isAuthor(state.uid);
         final voted = live.hasVoted(state.uid);
         final theme = Theme.of(ctx);
         return _SheetBody(
@@ -25,12 +26,13 @@ Future<void> showSignalementSheet(BuildContext context, Signalement s) {
           color: live.statut.color,
           map: RouteMap(
             itineraires: it == null ? const [] : [it],
-            highlighted: it,
-            signalements: [live],
+            highlightedId: it?.id,
+            markers: [signalementMarker(live)],
             initialCenter: live.position,
-            initialZoom: 15,
+            initialZoom: 14.5,
             interactive: false,
             showStartMarkers: false,
+            attribution: false,
           ),
           children: [
             Wrap(
@@ -39,9 +41,9 @@ Future<void> showSignalementSheet(BuildContext context, Signalement s) {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 StatusChip(
-                  label: live.statut == SignalementStatut.valide ? "Validé par l'ARC" : live.statut.label,
+                  label: live.statut == SignalementStatut.valide ? 'Validé' : live.statut.label,
                   color: live.statut.color,
-                  icon: live.statut == SignalementStatut.valide ? Icons.verified : Icons.schedule,
+                  icon: live.statut == SignalementStatut.valide ? Icons.verified_rounded : Icons.schedule_rounded,
                 ),
                 Text(formatDate(live.createdAt), style: theme.textTheme.bodySmall),
               ],
@@ -61,8 +63,7 @@ Future<void> showSignalementSheet(BuildContext context, Signalement s) {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Réponse de l'ARC",
-                        style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+                    Text('Réponse du modérateur', style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
                     Text(live.commentaireAdmin!),
                   ],
@@ -74,19 +75,17 @@ Future<void> showSignalementSheet(BuildContext context, Signalement s) {
               children: [
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: voted
+                    onPressed: voted || mine
                         ? null
                         : () async {
                             final ok = await state.vote(live);
                             if (!ctx.mounted) return;
                             ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                              content: Text(ok
-                                  ? 'Merci, votre +1 a été pris en compte.'
-                                  : 'Impossible de voter pour le moment.'),
+                              content: Text(ok ? 'Merci, ton +1 a été pris en compte.' : (state.authError ?? 'Impossible de voter pour le moment.')),
                             ));
                           },
-                    icon: Icon(voted ? Icons.thumb_up : Icons.thumb_up_outlined),
-                    label: Text(voted ? 'Vous confirmez (+${live.votes})' : 'Je confirme (+${live.votes})'),
+                    icon: Icon(voted ? Icons.thumb_up_rounded : Icons.thumb_up_outlined),
+                    label: Text(mine ? 'Ton signalement (+${live.votes})' : (voted ? 'Confirmé (+${live.votes})' : 'Je confirme (+${live.votes})')),
                   ),
                 ),
                 if (it != null) ...[
@@ -118,7 +117,7 @@ Future<void> showElementSheet(BuildContext context, ElementRemarquable e) {
       builder: (ctx, state, _) {
         final it = state.itineraireById(e.itineraireId);
         final theme = Theme.of(ctx);
-        final color = e.isValide ? RandoColors.water : e.statut.color;
+        final color = e.isValide ? RandoColors.blue : e.statut.color;
         return _SheetBody(
           title: e.titre,
           subtitle: '${e.categorie.label} · ${e.itineraireNom}',
@@ -126,12 +125,13 @@ Future<void> showElementSheet(BuildContext context, ElementRemarquable e) {
           color: color,
           map: RouteMap(
             itineraires: it == null ? const [] : [it],
-            highlighted: it,
-            elements: [e],
+            highlightedId: it?.id,
+            markers: [elementMarker(e)],
             initialCenter: e.position,
-            initialZoom: 15,
+            initialZoom: 14.5,
             interactive: false,
             showStartMarkers: false,
+            attribution: false,
           ),
           children: [
             Wrap(
@@ -140,9 +140,9 @@ Future<void> showElementSheet(BuildContext context, ElementRemarquable e) {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 StatusChip(
-                  label: e.isValide ? "Validé par l'ARC" : e.statut.label,
+                  label: e.isValide ? 'Validé' : e.statut.label,
                   color: color,
-                  icon: e.isValide ? Icons.verified : Icons.hourglass_top,
+                  icon: e.isValide ? Icons.verified_rounded : Icons.hourglass_top_rounded,
                 ),
                 Text(formatDate(e.createdAt), style: theme.textTheme.bodySmall),
               ],
@@ -204,8 +204,7 @@ class _SheetBody extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                      Text(subtitle,
-                          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary)),
+                      Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary)),
                     ],
                   ),
                 ),

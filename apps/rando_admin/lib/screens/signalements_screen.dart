@@ -66,6 +66,7 @@ class _SignalementsScreenState extends State<SignalementsScreen> {
                     itemCount: filtered.length,
                     itemBuilder: (context, i) => _SignalementRow(
                       signalement: filtered[i],
+                      itineraire: data.itineraireById(filtered[i].itineraireId),
                       repo: repo,
                       onShowOnMap: widget.onShowOnMap,
                     ),
@@ -79,9 +80,13 @@ class _SignalementsScreenState extends State<SignalementsScreen> {
 
 class _SignalementRow extends StatelessWidget {
   const _SignalementRow(
-      {required this.signalement, required this.repo, required this.onShowOnMap});
+      {required this.signalement,
+      required this.itineraire,
+      required this.repo,
+      required this.onShowOnMap});
 
   final Signalement signalement;
+  final Itineraire? itineraire;
   final RandoRepository repo;
   final void Function(LatLng point, {String? title}) onShowOnMap;
 
@@ -144,12 +149,47 @@ class _SignalementRow extends StatelessWidget {
                                 color: RandoColors.inkMuted, fontSize: 12)),
                       ],
                     ),
-                    Text(s.itineraireNom,
-                        style:
-                            const TextStyle(color: RandoColors.inkMuted, fontSize: 12)),
+                    Row(
+                      children: [
+                        if (itineraire != null) ...[
+                          Icon(itineraire!.activite.icon,
+                              size: 13, color: itineraire!.activite.color),
+                          const SizedBox(width: 4),
+                        ],
+                        Flexible(
+                          child: Text(s.itineraireNom,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: RandoColors.inkMuted, fontSize: 12)),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 4),
                     Text(s.description,
                         maxLines: 2, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text('Auteur ${shortAuthorId(s.auteurId)}',
+                        style: const TextStyle(
+                            color: RandoColors.inkMuted, fontSize: 11)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (s.statut != SignalementStatut.valide)
+                          FilledButton.icon(
+                            onPressed: () => validateSignalement(context, repo, s),
+                            icon: const Icon(Icons.check),
+                            label: const Text('Valider'),
+                          ),
+                        OutlinedButton.icon(
+                          onPressed: () => deleteSignalementConfirm(context, repo, s),
+                          icon: const Icon(Icons.delete_outline,
+                              color: RandoColors.danger),
+                          label: const Text('Supprimer'),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),

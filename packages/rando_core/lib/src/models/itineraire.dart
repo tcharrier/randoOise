@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../geo/geo.dart';
+import 'activite.dart';
 
 class MediaItem {
   const MediaItem({this.url, this.titre, this.auteur, this.licence, this.type});
@@ -33,7 +34,8 @@ class MediaItem {
   }
 }
 
-/// A hiking route (schéma national "itinéraires de randonnée").
+/// A route: a hike (schéma national "itinéraires de randonnée") or a
+/// cycling route (ARC cycling network dataset).
 class Itineraire {
   const Itineraire({
     required this.id,
@@ -43,6 +45,7 @@ class Itineraire {
     required this.tracks,
     required this.start,
     required this.bounds,
+    this.activite = Activite.pied,
     this.pratique,
     this.typeItineraire,
     this.communes = const [],
@@ -72,6 +75,12 @@ class Itineraire {
     this.typeSol,
     this.pdipr = false,
     this.url,
+    this.numero,
+    this.statutReseau,
+    this.niveau,
+    this.couleur,
+    this.secondaire = false,
+    this.embedded = false,
   });
 
   final String id;
@@ -81,6 +90,7 @@ class Itineraire {
   final List<List<LatLng>> tracks;
   final LatLng start;
   final GeoBounds bounds;
+  final Activite activite;
   final String? pratique;
   final String? typeItineraire;
   final List<String> communes;
@@ -111,6 +121,28 @@ class Itineraire {
   final bool pdipr;
   final String? url;
 
+  /// Cycling routes: "Piste 4", "106"…
+  final String? numero;
+
+  /// Cycling routes: operational status of the lane.
+  final StatutReseau? statutReseau;
+
+  /// Cycling routes: "communal" / "intercommunal".
+  final String? niveau;
+
+  /// Colour of the route on the official ARC cycling plan (ARGB), when known.
+  final int? couleur;
+
+  /// Cycling segment that is not one of the numbered plan itineraries
+  /// ("autre aménagement cyclable"): drawn on the map but not listed.
+  final bool secondaire;
+
+  /// True when the route comes from the dataset bundled with the app
+  /// (never written back to Firestore).
+  final bool embedded;
+
+  bool get isVelo => activite == Activite.velo;
+
   /// Length in meters, from the data or computed from the track.
   double get lengthM => longueurM ?? tracksLengthM(tracks);
 
@@ -118,13 +150,89 @@ class Itineraire {
 
   String get communesLabel => communes.join(', ');
 
+  /// "Départ → Arrivée" when both are known and differ.
+  String? get trajetLabel {
+    if (depart == null || depart!.isEmpty) return null;
+    if (arrivee == null || arrivee!.isEmpty || arrivee == depart) return depart;
+    return '$depart → $arrivee';
+  }
+
+  /// Display name: "Piste 4 · Compiègne" for cycling routes.
+  String get titre => (numero != null && numero!.isNotEmpty && isVelo) ? '$numero · $nom' : nom;
+
   int get pointCount => tracks.fold(0, (n, l) => n + l.length);
+
+  Itineraire copyWith({
+    String? id,
+    String? sourceId,
+    String? sourceName,
+    String? nom,
+    Activite? activite,
+    List<List<LatLng>>? tracks,
+    LatLng? start,
+    GeoBounds? bounds,
+    bool? embedded,
+    String? numero,
+    int? couleur,
+    bool? secondaire,
+    double? longueurM,
+    double? dureeH,
+    String? depart,
+    String? arrivee,
+    List<String>? communes,
+  }) =>
+      Itineraire(
+        id: id ?? this.id,
+        sourceId: sourceId ?? this.sourceId,
+        sourceName: sourceName ?? this.sourceName,
+        nom: nom ?? this.nom,
+        tracks: tracks ?? this.tracks,
+        start: start ?? this.start,
+        bounds: bounds ?? this.bounds,
+        activite: activite ?? this.activite,
+        pratique: pratique,
+        typeItineraire: typeItineraire,
+        communes: communes ?? this.communes,
+        depart: depart ?? this.depart,
+        arrivee: arrivee ?? this.arrivee,
+        dureeH: dureeH ?? this.dureeH,
+        balisage: balisage,
+        longueurM: longueurM ?? this.longueurM,
+        difficulte: difficulte,
+        altMax: altMax,
+        altMin: altMin,
+        denivelePositif: denivelePositif,
+        deniveleNegatif: deniveleNegatif,
+        instructions: instructions,
+        presentation: presentation,
+        presentationCourte: presentationCourte,
+        themes: themes,
+        recommandations: recommandations,
+        accessibilite: accessibilite,
+        accesRoutier: accesRoutier,
+        transportsCommun: transportsCommun,
+        parkingInfo: parkingInfo,
+        parking: parking,
+        dateCreation: dateCreation,
+        dateModification: dateModification,
+        medias: medias,
+        typeSol: typeSol,
+        pdipr: pdipr,
+        url: url,
+        numero: numero ?? this.numero,
+        statutReseau: statutReseau,
+        niveau: niveau,
+        couleur: couleur ?? this.couleur,
+        secondaire: secondaire ?? this.secondaire,
+        embedded: embedded ?? this.embedded,
+      );
 
   Map<String, dynamic> toMap() => {
         'sourceId': sourceId,
         'sourceName': sourceName,
         'nom': nom,
         'nomLower': nom.toLowerCase(),
+        'activite': activite.code,
         'tracks': TrackCodec.encode(tracks),
         'start': GeoPoint(start.latitude, start.longitude),
         'bounds': bounds.toMap(),
@@ -150,15 +258,18 @@ class Itineraire {
         'accesRoutier': accesRoutier,
         'transportsCommun': transportsCommun,
         'parkingInfo': parkingInfo,
-        'parking': parking == null
-            ? null
-            : GeoPoint(parking!.latitude, parking!.longitude),
+        'parking': parking == null ? null : GeoPoint(parking!.latitude, parking!.longitude),
         'dateCreation': dateCreation,
         'dateModification': dateModification,
         'medias': medias.map((m) => m.toMap()).toList(),
         'typeSol': typeSol,
         'pdipr': pdipr,
         'url': url,
+        'numero': numero,
+        'statutReseau': statutReseau?.code,
+        'niveau': niveau,
+        'couleur': couleur,
+        'secondaire': secondaire,
         'pointCount': pointCount,
         'updatedAt': FieldValue.serverTimestamp(),
       };
@@ -170,19 +281,16 @@ class Itineraire {
         ? LatLng(startGp.latitude, startGp.longitude)
         : (tracks.isNotEmpty ? tracks.first.first : const LatLng(49.4, 2.8));
     final parkingGp = m['parking'] as GeoPoint?;
-    final bounds = GeoBounds.fromMap(
-            (m['bounds'] as Map?)?.cast<String, dynamic>()) ??
+    final bounds = GeoBounds.fromMap((m['bounds'] as Map?)?.cast<String, dynamic>()) ??
         GeoBounds.fromPoints(tracks.expand((l) => l)) ??
         GeoBounds(
-            minLat: start.latitude,
-            minLng: start.longitude,
-            maxLat: start.latitude,
-            maxLng: start.longitude);
+            minLat: start.latitude, minLng: start.longitude, maxLat: start.latitude, maxLng: start.longitude);
     return Itineraire(
       id: id,
       sourceId: (m['sourceId'] ?? '') as String,
       sourceName: (m['sourceName'] ?? '') as String,
       nom: (m['nom'] ?? 'Itinéraire') as String,
+      activite: Activite.fromCode(m['activite'] as String?),
       tracks: tracks,
       start: start,
       bounds: bounds,
@@ -208,9 +316,7 @@ class Itineraire {
       accesRoutier: m['accesRoutier'] as String?,
       transportsCommun: m['transportsCommun'] as String?,
       parkingInfo: m['parkingInfo'] as String?,
-      parking: parkingGp == null
-          ? null
-          : LatLng(parkingGp.latitude, parkingGp.longitude),
+      parking: parkingGp == null ? null : LatLng(parkingGp.latitude, parkingGp.longitude),
       dateCreation: m['dateCreation'] as String?,
       dateModification: m['dateModification'] as String?,
       medias: ((m['medias'] as List?) ?? const [])
@@ -220,9 +326,13 @@ class Itineraire {
       typeSol: m['typeSol'] as String?,
       pdipr: (m['pdipr'] as bool?) ?? false,
       url: m['url'] as String?,
+      numero: m['numero'] as String?,
+      statutReseau: StatutReseau.fromCode(m['statutReseau'] as String?),
+      niveau: m['niveau'] as String?,
+      couleur: (m['couleur'] as num?)?.toInt(),
+      secondaire: (m['secondaire'] as bool?) ?? false,
     );
   }
 
-  static List<String> _strList(dynamic v) =>
-      ((v as List?) ?? const []).map((e) => e.toString()).toList();
+  static List<String> _strList(dynamic v) => ((v as List?) ?? const []).map((e) => e.toString()).toList();
 }

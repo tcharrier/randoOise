@@ -10,6 +10,18 @@ Arguments optionnels : `$ARGUMENTS`
 - `preview` → déploie sur un canal de prévisualisation temporaire (`firebase hosting:channel:deploy preview --expires 7d`) au lieu de la production.
 - `no-build` → saute la compilation et redéploie `apps/rando_admin/build/web` existant.
 
+## Prérequis
+
+- CLI Firebase connectée (`firebase login`, projet `rando-oise-a4efa`).
+- Firebase Authentication activée (une seule fois, dans la console : Authentication → Commencer, puis activer « E‑mail/mot de passe » et « Anonyme »).
+- Compte admin créé : `node tools/create_admin.js admin admin` (code de sortie 2 + message si Authentication n'est pas activée).
+
+## Connexion
+
+Le formulaire demande un « Identifiant » et un « Mot de passe ». Mapping déterministe (`adminCredentials` dans `apps/rando_admin/lib/session.dart`, identique dans `tools/create_admin.js`) : identifiant sans `@` → `<identifiant>@rando-oise.app` ; mot de passe de moins de 6 caractères complété par `#`. Compte initial : `admin` / `admin` → `admin@rando-oise.app` / `admin#`.
+
+URL déployée : https://rando-oise-a4efa.web.app
+
 ## Étapes
 
 1. Vérifier que la CLI Firebase est connectée (`firebase projects:list` doit lister `rando-oise-a4efa`). Sinon, s'arrêter et demander `firebase login` (interactif, l'utilisateur doit le lancer lui-même).
@@ -28,4 +40,4 @@ Arguments optionnels : `$ARGUMENTS`
 
 ## Rapport final
 
-URL déployée, version du code déployé (dernier commit ou état du working tree), ce qui a été déployé (hosting seul, ou hosting + règles), et rappeler que la connexion exige un compte présent dans la collection Firestore `admins` (`node tools/create_admin.js <email> <mot de passe>`).
+URL déployée, version du code déployé (dernier commit ou état du working tree), ce qui a été déployé (hosting seul, ou hosting + règles), et rappeler que la connexion exige un compte présent dans la collection Firestore `admins` (`node tools/create_admin.js <identifiant> <mot de passe>`).

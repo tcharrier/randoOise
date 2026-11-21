@@ -3,33 +3,19 @@ import 'package:provider/provider.dart';
 import 'package:rando_core/rando_core.dart';
 
 import '../app_state.dart';
-import '../services/tile_cache.dart';
+import '../services/map_style.dart';
+import '../services/offline_service.dart';
 import '../util/format.dart';
 import '../widgets/ui.dart';
 import 'favoris_screen.dart';
+import 'mes_elements_screen.dart';
+import 'signalements_screen.dart';
+import 'sorties_screen.dart';
 
-class ProfilScreen extends StatefulWidget {
+class ProfilScreen extends StatelessWidget {
   const ProfilScreen({super.key});
 
-  @override
-  State<ProfilScreen> createState() => _ProfilScreenState();
-}
-
-class _ProfilScreenState extends State<ProfilScreen> {
-  int? _cacheBytes;
-
-  @override
-  void initState() {
-    super.initState();
-    _refreshSize();
-  }
-
-  Future<void> _refreshSize() async {
-    final size = await context.read<AppState>().offline.tiles.sizeBytes();
-    if (mounted) setState(() => _cacheBytes = size);
-  }
-
-  Future<void> _editName(AppState state) async {
+  Future<void> _editName(BuildContext context, AppState state) async {
     final ctrl = TextEditingController(text: state.displayName);
     final name = await showDialog<String>(
       context: context,
@@ -62,7 +48,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
     return Scaffold(
       body: SafeArea(
         child: AnimatedBuilder(
-          animation: offline,
+          animation: Listenable.merge([offline, state.sorties]),
           builder: (context, _) => ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
             children: [
@@ -76,14 +62,14 @@ class _ProfilScreenState extends State<ProfilScreen> {
                   contentPadding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
                   leading: InitialsAvatar(name: name, size: 56),
                   title: Text(name, style: theme.textTheme.titleLarge),
-                  subtitle: Text(state.favoriteItineraires.isEmpty
-                      ? 'Aucun favori pour le moment'
-                      : plural(state.favoriteItineraires.length, 'circuit favori', 'circuits favoris')),
+                  subtitle: Text(
+                    '${plural(state.favoriteItineraires.length, 'favori')} · ${plural(state.sorties.count, 'sortie')}',
+                  ),
                   trailing: RoundIconButton(
                     icon: Icons.edit_outlined,
                     label: 'Modifier le prénom',
                     size: 44,
-                    onPressed: () => _editName(state),
+                    onPressed: () => _editName(context, state),
                   ),
                 ),
               ),
@@ -95,6 +81,35 @@ class _ProfilScreenState extends State<ProfilScreen> {
                 subtitle: plural(state.favoriteItineraires.length, 'circuit'),
                 chevron: true,
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FavorisScreen())),
+              ),
+              const SizedBox(height: 10),
+              InfoRowCard(
+                icon: Icons.history_rounded,
+                color: RandoColors.velo,
+                title: 'Mes sorties',
+                subtitle: state.sorties.count == 0
+                    ? 'Aucune sortie enregistrée'
+                    : '${plural(state.sorties.count, 'sortie')} · ${formatDistance(state.sorties.totalKm * 1000)}',
+                chevron: true,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SortiesScreen())),
+              ),
+              const SizedBox(height: 10),
+              InfoRowCard(
+                icon: Icons.add_alert_rounded,
+                color: RandoColors.ochre,
+                title: 'Mes signalements',
+                subtitle: state.mySignalements.isEmpty ? 'Aucun signalement envoyé' : plural(state.mySignalements.length, 'signalement'),
+                chevron: true,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SignalementsScreen(onlyMine: true))),
+              ),
+              const SizedBox(height: 10),
+              InfoRowCard(
+                icon: Icons.place_rounded,
+                color: RandoColors.blue,
+                title: 'Mes éléments remarquables',
+                subtitle: state.myElements.isEmpty ? 'Aucune proposition' : plural(state.myElements.length, 'proposition'),
+                chevron: true,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MesElementsScreen())),
               ),
 
               const SectionHeader('Apparence'),
@@ -142,45 +157,46 @@ class _ProfilScreenState extends State<ProfilScreen> {
 
               const SectionHeader('Hors ligne'),
               InfoRowCard(
-                icon: Icons.offline_pin_rounded,
-                color: RandoColors.green,
-                title: 'Circuits téléchargés',
-                subtitle: offline.downloadedCount == 0
-                    ? 'Depuis la fiche d’un circuit, télécharge sa carte pour partir sans réseau.'
-                    : '${plural(offline.downloadedCount, 'circuit')} avec carte hors ligne',
+                icon: Icons.directions_bike_rounded,
+                color: RandoColors.velo,
+                title: 'Pistes cyclables',
+                subtitle: '${plural(state.countFor(Activite.velo), 'piste')} intégrées à l’app, toujours disponibles sans réseau',
               ),
               const SizedBox(height: 10),
               InfoRowCard(
-                icon: Icons.storage_rounded,
-                color: RandoColors.blue,
-                title: 'Cache des cartes',
-                subtitle: _cacheBytes == null ? 'Calcul…' : formatBytes(_cacheBytes!),
-                trailing: TextButton(
-                  onPressed: () async {
-                    final ok = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Vider le cache ?'),
-                        content: const Text('Les cartes téléchargées devront être re-téléchargées pour une utilisation hors ligne.'),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-                          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Vider')),
-                        ],
+                icon: Icons.offline_pin_rounded,
+                color: RandoColors.green,
+                title: 'Cartes enregistrées',
+                subtitle: !OfflineService.supported
+                    ? 'Disponible dans l’application mobile'
+                    : offline.savedCount == 0
+                        ? 'Depuis la fiche d’un circuit, enregistre sa carte pour partir sans réseau.'
+                        : '${plural(offline.savedCount, 'circuit')} avec carte hors ligne',
+                trailing: offline.savedCount == 0
+                    ? null
+                    : TextButton(
+                        onPressed: () async {
+                          final ok = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Supprimer les cartes hors ligne ?'),
+                              content: const Text('Les tuiles enregistrées pour tous les circuits seront retirées de l’appareil.'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+                                FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Supprimer')),
+                              ],
+                            ),
+                          );
+                          if (ok == true) await offline.clearAll();
+                        },
+                        child: const Text('Vider'),
                       ),
-                    );
-                    if (ok == true) {
-                      await offline.clearAll();
-                      _refreshSize();
-                    }
-                  },
-                  child: const Text('Vider'),
-                ),
               ),
               const SizedBox(height: 10),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
-                  'Les circuits, signalements et éléments remarquables consultés sont conservés sur l’appareil. '
+                  'Les randonnées, signalements et éléments remarquables consultés sont conservés sur l’appareil. '
                   'Les signalements créés sans réseau sont envoyés automatiquement dès que la connexion revient.',
                   style: theme.textTheme.bodySmall,
                 ),
@@ -191,9 +207,14 @@ class _ProfilScreenState extends State<ProfilScreen> {
                 icon: Icons.hiking_rounded,
                 color: RandoColors.green,
                 title: 'Rando Oise',
-                subtitle: state.sources.isEmpty
-                    ? 'Sources de randonnées : aucune'
-                    : 'Sources : ${state.sources.map((s) => s.name).join(', ')}',
+                subtitle: 'Sources : ${state.sources.map((s) => s.name).join(', ')}',
+              ),
+              const SizedBox(height: 10),
+              InfoRowCard(
+                icon: Icons.cloud_outlined,
+                color: RandoColors.blue,
+                title: 'Météo',
+                subtitle: 'Prévisions Open-Meteo pour Compiègne, mises en cache sur l’appareil.',
               ),
               const SizedBox(height: 10),
               InfoRowCard(
@@ -201,7 +222,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
                 color: RandoColors.ochre,
                 title: 'Identifiant de l’appareil',
                 subtitle: state.uid == null
-                    ? 'Non connecté (une connexion internet est nécessaire une fois)'
+                    ? (state.authError ?? 'Non connecté (une connexion internet est nécessaire une fois)')
                     : 'Anonyme · ${state.uid!.substring(0, 8)}',
               ),
             ],

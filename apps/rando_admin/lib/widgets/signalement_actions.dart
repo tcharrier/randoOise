@@ -51,6 +51,21 @@ Future<void> changeSignalementStatut(
   }
 }
 
+Future<void> validateSignalement(
+    BuildContext context, RandoRepository repo, Signalement signalement) async {
+  final uid = context.read<AdminSession>().user?.uid ?? '';
+  await repo.setSignalementStatut(signalement.id, SignalementStatut.valide,
+      adminUid: uid);
+  if (context.mounted) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Signalement validé.')));
+  }
+}
+
+/// Anonymous short id shown instead of any personal data.
+String shortAuthorId(String uid) =>
+    uid.length <= 8 ? uid : '${uid.substring(0, 8)}…';
+
 Future<void> deleteSignalementConfirm(
     BuildContext context, RandoRepository repo, Signalement signalement) async {
   final ok = await showConfirmDialog(

@@ -23,6 +23,7 @@ class ItinerairesScreen extends StatefulWidget {
 class _ItinerairesScreenState extends State<ItinerairesScreen> {
   String _query = '';
   String? _sourceFilter;
+  Activite? _activiteFilter;
   String? _selectedId;
   _SortBy _sortBy = _SortBy.nom;
 
@@ -30,6 +31,7 @@ class _ItinerairesScreenState extends State<ItinerairesScreen> {
     final q = _query.trim().toLowerCase();
     var list = all.where((it) {
       if (_sourceFilter != null && it.sourceId != _sourceFilter) return false;
+      if (_activiteFilter != null && it.activite != _activiteFilter) return false;
       if (q.isEmpty) return true;
       return it.nom.toLowerCase().contains(q) ||
           it.communesLabel.toLowerCase().contains(q);
@@ -61,6 +63,8 @@ class _ItinerairesScreenState extends State<ItinerairesScreen> {
         sources: data.sources,
         sourceFilter: _sourceFilter,
         onSourceFilterChanged: (v) => setState(() => _sourceFilter = v),
+        activiteFilter: _activiteFilter,
+        onActiviteFilterChanged: (v) => setState(() => _activiteFilter = v),
         sortBy: _sortBy,
         onSortChanged: (v) => setState(() => _sortBy = v),
         items: filtered,
@@ -72,7 +76,7 @@ class _ItinerairesScreenState extends State<ItinerairesScreen> {
           } else {
             Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => Scaffold(
-                appBar: AppBar(title: Text(it.nom)),
+                appBar: AppBar(title: Text(it.titre)),
                 body: ItineraireDetail(
                   itineraire: it,
                   signalements: data.signalements
@@ -123,6 +127,8 @@ class _ListPanel extends StatelessWidget {
     required this.sources,
     required this.sourceFilter,
     required this.onSourceFilterChanged,
+    required this.activiteFilter,
+    required this.onActiviteFilterChanged,
     required this.sortBy,
     required this.onSortChanged,
     required this.items,
@@ -136,6 +142,8 @@ class _ListPanel extends StatelessWidget {
   final List<RandoSource> sources;
   final String? sourceFilter;
   final ValueChanged<String?> onSourceFilterChanged;
+  final Activite? activiteFilter;
+  final ValueChanged<Activite?> onActiviteFilterChanged;
   final _SortBy sortBy;
   final ValueChanged<_SortBy> onSortChanged;
   final List<Itineraire> items;
@@ -176,6 +184,30 @@ class _ListPanel extends StatelessWidget {
                 ],
               ),
             ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SegmentedButton<Activite?>(
+              segments: [
+                ButtonSegment(
+                    value: null, label: Text('Tout (${data.itineraires.length})')),
+                ButtonSegment(
+                  value: Activite.pied,
+                  icon: Icon(Activite.pied.icon, size: 16),
+                  label: Text('À pied (${data.countByActivite(Activite.pied)})'),
+                ),
+                ButtonSegment(
+                  value: Activite.velo,
+                  icon: Icon(Activite.velo.icon, size: 16),
+                  label: Text('À vélo (${data.countByActivite(Activite.velo)})'),
+                ),
+              ],
+              selected: {activiteFilter},
+              onSelectionChanged: (v) => onActiviteFilterChanged(v.first),
+            ),
           ),
         ),
         if (sources.length > 1)
@@ -246,9 +278,19 @@ class _ItineraireRow extends StatelessWidget {
   final int elementCount;
   final VoidCallback onTap;
 
+  /// Difficulty chip for hikes, network status chip for cycling routes.
+  Widget? _statusOrDifficultyChip(Itineraire it) {
+    if (!it.isVelo) return DifficultyChip(it.difficulte, dense: true);
+    final statut = it.statutReseau;
+    if (statut == null) return null;
+    return StatusChip(
+        label: statut.label, color: statut.color, icon: Icons.info_outline, dense: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final it = itineraire;
+    final statusChip = _statusOrDifficultyChip(it);
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       color: selected ? RandoColors.forestLight : null,
@@ -260,8 +302,17 @@ class _ItineraireRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(it.nom,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(it.activite.icon, size: 16, color: it.activite.color),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(it.titre,
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  ),
+                ],
+              ),
               const SizedBox(height: 2),
               Text('${it.sourceName} · ${it.communesLabel}',
                   maxLines: 1,
@@ -272,7 +323,7 @@ class _ItineraireRow extends StatelessWidget {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  DifficultyChip(it.difficulte, dense: true),
+                  ?statusChip,
                   StatusChip(
                       label: formatDistance(it.lengthM),
                       color: RandoColors.forest,

@@ -1,0 +1,26 @@
+{
+  "source": "Plan des itinéraires cyclables de l'ARC 2026",
+  "itineraires": [
+    { "numero": 1, "nom": "La Trans'Oise", "couleur": "#1CC4F4", "longueurKm": 17.5, "datasetIds": [] },
+    { "numero": 2, "nom": "Voie verte rive droite", "couleur": "#FC2C14", "longueurKm": 10, "datasetIds": ["c2446388-14ee-480d-a650-b2611a7247ee", "56ff923c-5ba9-4542-8ef7-990800b95c4a"] },
+    { "numero": 3, "nom": "Compiègne ◄► Pierrefonds par Saint-Jean-aux-Bois", "couleur": "#BC6C8C", "longueurKm": 16, "datasetIds": ["c3909002-a7f3-4b3b-ab29-fe6b8a09ff48"] },
+    { "numero": 4, "nom": "Compiègne ◄► Pierrefonds par Vieux-Moulin", "couleur": "#FC9C3C", "longueurKm": 12.8, "datasetIds": ["b7a92abf-7445-413b-85d9-6434e5fe8d09"] },
+    { "numero": 5, "nom": "Compiègne ◄► Choisy-au-Bac ◄► Clairière de l'Armistice", "couleur": "#945C2C", "longueurKm": 12.9, "datasetIds": ["40eee201-c341-4f03-b027-6a00e4480f26", "ec5d3fbc-5d26-46fd-9a76-ea10855717b1", "a165bb8a-6a39-4043-8df5-83b98a6e1025"] },
+    { "numero": 6, "nom": "Compiègne ◄► Le Meux", "couleur": "#1C8464", "longueurKm": 9.5, "datasetIds": ["a09762ba-8851-491b-8fa6-07bd63ad104e"] },
+    { "numero": 7, "nom": "Compiègne ◄► La Croix-St-Ouen", "couleur": "#FC541C", "longueurKm": 3.8, "datasetIds": ["f6c63705-53f4-4034-a0c9-d1eae22728d7"] },
+    { "numero": 8, "nom": "Margny ◄► Janville", "couleur": "#F45C74", "longueurKm": 6.1, "datasetIds": ["a2e50196-dbd6-417d-80ca-d5e797741998"] },
+    { "numero": 9, "nom": "La Croix-St-Ouen ◄► St-Sauveur", "couleur": "#046CA4", "longueurKm": 4.7, "datasetIds": ["bb0732df-08b5-40ec-be6f-3fae619f09c5", "fd2ae266-6542-4e16-9a21-967cfa02e3c6"] },
+    { "numero": 10, "nom": "Le Meux ◄► Jonquières", "couleur": "#FCDC3C", "longueurKm": 5.7, "datasetIds": ["837d93a2-e64e-452f-a8d7-b4893db64012"] },
+    { "numero": 11, "nom": "Le Meux ◄► Rivecourt", "couleur": "#D48474", "longueurKm": 2.5, "datasetIds": ["3c1a7f18-a7d8-42f2-b5b9-8880e2e336e5", "03764010-0ca5-404c-9af6-24c8c25a4f45"] },
+    { "numero": 12, "nom": "Saintines ◄► Néry ◄► Béthisy-St-Martin ◄► Béthisy-St-Pierre", "couleur": "#8CCC44", "longueurKm": 17, "datasetIds": ["015cbd74-5e1b-4218-b960-c9dccfac4ce7"] },
+    { "numero": 13, "nom": "Verberie ◄► St-Vaast-de-Longmont ◄► Saintines", "couleur": "#7C74BC", "longueurKm": 16.8, "datasetIds": ["b0c049d7-faf3-48a2-a8c0-2265880cb829", "ea93bbeb-dd8c-490f-8956-c34bf644f4ea", "fd18bf80-f94c-4a0e-9193-baa19bb5d9a3"] },
+    { "numero": 14, "nom": "Bois de Plaisance", "couleur": "#44BC4C", "longueurKm": 4.5, "datasetIds": ["8c5da3e8-050d-4932-8132-a9d61d5cc3d7", "d073072b-54a2-42a6-be4f-29d7afa932b4", "f6853e0f-f20a-4c3a-86ee-30889831fbbc", "9587a783-7c1e-4e0a-aa34-5174e85d860d"] },
+    { "numero": 15, "nom": "Mercières – Parc tertiaire", "couleur": "#4C2494", "longueurKm": 5.6, "datasetIds": ["ce7d921e-641d-4e8c-9600-6375cf4fb94e"] },
+    { "numero": 16, "nom": "Bienville ◄► Clairoix ◄► Margny", "couleur": "#CCB45C", "longueurKm": 3, "datasetIds": ["e251fd6e-4933-47a8-99c2-2bb730f8a675"] },
+    { "numero": 17, "nom": "Liaison des lycées", "couleur": "#9C9C9C", "longueurKm": 3, "datasetIds": ["7d0d737d-c196-4f62-8459-8760eb19ed0a", "eace5216-89ec-4877-8693-471026d41bf9", "a7fcf4de-5666-4369-8f23-036ae8a36aa9"] },
+    { "numero": 18, "nom": "Oise – Forêt", "couleur": "#9C9C9C", "longueurKm": 2, "datasetIds": ["217d7c22-2d26-48d4-b12a-08612238baeb", "97d394ce-f7b3-4755-b2cb-4af3132dab09"] },
+    { "numero": 19, "nom": "Lachelle ◄► Rémy", "couleur": "#F45C74", "longueurKm": 0.5, "datasetIds": ["6181a006-6e1d-4226-818c-036d37f3517c", "5b176f56-beec-46b2-8958-095d39dd5833"] },
+    { "numero": 20, "nom": "La Pénétrante", "couleur": "#9C9C9C", "longueurKm": 3, "datasetIds": ["cb4fce59-35fa-4f38-bb09-929f6244023a", "8be55116-de12-40d3-a974-de9dfd951275"] },
+    { "numero": 21, "nom": "Venette – Margny – Clairoix", "couleur": "#2C2C34", "longueurKm": 4.5, "datasetIds": ["722778b3-9656-4f63-a21f-037cbfa5025b"] }
+  ]
+}

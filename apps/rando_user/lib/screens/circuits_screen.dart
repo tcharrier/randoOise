@@ -6,7 +6,7 @@ import '../widgets/itineraire_card.dart';
 import '../widgets/ui.dart';
 import 'itineraire_detail_screen.dart';
 
-/// Searchable, sortable list of every route.
+/// Searchable, sortable list of every route (hikes and cycling lanes).
 class CircuitsScreen extends StatefulWidget {
   const CircuitsScreen({super.key, this.autofocusSearch = false});
   final bool autofocusSearch;
@@ -21,7 +21,11 @@ class _CircuitsScreenState extends State<CircuitsScreen> {
   @override
   void initState() {
     super.initState();
-    _search = TextEditingController(text: context.read<AppState>().search);
+    final st = context.read<AppState>();
+    _search = TextEditingController(text: st.search);
+    if (st.sourceFilter != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => st.setSourceFilter(null));
+    }
   }
 
   @override
@@ -42,7 +46,7 @@ class _CircuitsScreenState extends State<CircuitsScreen> {
           children: [
             PageHeader(
               title: 'Circuits',
-              subtitle: '${list.length} circuit${list.length > 1 ? 's' : ''} · ${state.originLabel.toLowerCase()}',
+              subtitle: '${list.length} circuit${list.length > 1 ? 's' : ''} · ${state.originLabel}',
               leading: RoundIconButton(
                 icon: Icons.arrow_back_rounded,
                 label: 'Retour',
@@ -57,7 +61,7 @@ class _CircuitsScreenState extends State<CircuitsScreen> {
                 onChanged: state.setSearch,
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
-                  hintText: 'Nom du circuit, commune, départ…',
+                  hintText: 'Nom, commune, départ, arrivée…',
                   prefixIcon: const Icon(Icons.search_rounded),
                   suffixIcon: state.search.isEmpty
                       ? null
@@ -72,42 +76,27 @@ class _CircuitsScreenState extends State<CircuitsScreen> {
                 ),
               ),
             ),
-            SizedBox(
-              height: 48,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: [
-                  PopupMenuButton<OriginMode>(
-                    tooltip: 'Ordre de tri',
-                    onSelected: state.setOriginMode,
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: OriginMode.gps, child: Text('Depuis ma position')),
-                      PopupMenuItem(value: OriginMode.manual, child: Text('Depuis un point choisi sur la carte')),
-                      PopupMenuItem(value: OriginMode.none, child: Text('Par nom')),
-                    ],
-                    child: Chip(
-                      avatar: const Icon(Icons.swap_vert_rounded, size: 18),
-                      label: Text(state.originLabel),
-                    ),
-                  ),
-                  if (state.sources.length > 1) ...[
-                    const SizedBox(width: 8),
-                    FilterChip(
-                      label: const Text('Toutes les sources'),
-                      selected: state.sourceFilter == null,
-                      onSelected: (_) => state.setSourceFilter(null),
-                    ),
-                    for (final s in state.sources.where((s) => s.enabled)) ...[
-                      const SizedBox(width: 8),
-                      FilterChip(
-                        label: Text(s.name),
-                        selected: state.sourceFilter == s.id,
-                        onSelected: (_) => state.setSourceFilter(s.id),
-                      ),
-                    ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+              child: Align(alignment: Alignment.centerLeft, child: SourceFilterChips(state: state)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: PopupMenuButton<OriginMode>(
+                  tooltip: 'Ordre de tri',
+                  onSelected: state.setOriginMode,
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: OriginMode.gps, child: Text('Depuis ma position')),
+                    PopupMenuItem(value: OriginMode.manual, child: Text('Depuis un point choisi sur la carte')),
+                    PopupMenuItem(value: OriginMode.none, child: Text('Par nom')),
                   ],
-                ],
+                  child: Chip(
+                    avatar: const Icon(Icons.swap_vert_rounded, size: 18),
+                    label: Text(state.originLabel),
+                  ),
+                ),
               ),
             ),
             Expanded(
@@ -119,7 +108,7 @@ class _CircuitsScreenState extends State<CircuitsScreen> {
                           title: state.itineraires.isEmpty ? 'Aucun circuit disponible' : 'Aucun résultat',
                           subtitle: state.itineraires.isEmpty
                               ? 'Connecte-toi à internet une première fois pour télécharger les circuits.'
-                              : 'Modifie ta recherche ou le filtre de source.',
+                              : 'Modifie ta recherche ou les filtres.',
                         )
                       : RefreshIndicator(
                           onRefresh: state.refreshGps,

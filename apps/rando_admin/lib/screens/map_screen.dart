@@ -25,11 +25,23 @@ class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController();
   bool _showSignalements = true;
   bool _showElements = true;
+  Activite? _activiteFilter;
   SignalementStatut? _signalementFilter;
   ElementStatut? _elementFilter;
   String? _hoveredRouteId;
   Signalement? _selectedSignalement;
   ElementRemarquable? _selectedElement;
+
+  /// Dashed line for lanes under construction or provisional, solid otherwise.
+  StrokePattern _patternFor(Itineraire r) {
+    final statut = r.statutReseau;
+    if (statut == StatutReseau.enTravaux || statut == StatutReseau.provisoire) {
+      // Not `const`: StrokePattern.dashed's assert reads segments.length,
+      // which isn't a valid constant expression for a List<double>.
+      return StrokePattern.dashed(segments: const [12, 8]);
+    }
+    return const StrokePattern.solid();
+  }
 
   @override
   void initState() {
@@ -72,6 +84,7 @@ class _MapScreenState extends State<MapScreen> {
         data.sources.where((s) => s.enabled).map((s) => s.id).toSet();
     final routes = data.itineraires
         .where((it) => enabledSourceIds.contains(it.sourceId))
+        .where((it) => _activiteFilter == null || it.activite == _activiteFilter)
         .toList();
 
     GeoBounds? bounds;
@@ -122,12 +135,18 @@ class _MapScreenState extends State<MapScreen> {
               userAgentPackageName: 'fr.randooise.admin',
             ),
             PolylineLayer(polylines: [
+              for (final r in data.secondaires)
+                for (final line in r.tracks)
+                  Polyline(points: line, color: const Color(0xFF9A9A9A), strokeWidth: 2),
+            ]),
+            PolylineLayer(polylines: [
               for (final r in routes)
                 for (final line in r.tracks)
                   Polyline(
                     points: line,
                     color: Colors.white,
                     strokeWidth: r.id == _hoveredRouteId ? 8 : 5.5,
+                    pattern: _patternFor(r),
                   ),
             ]),
             PolylineLayer(polylines: [
@@ -135,8 +154,9 @@ class _MapScreenState extends State<MapScreen> {
                 for (final line in r.tracks)
                   Polyline(
                     points: line,
-                    color: RoutePalette.forId(r.id),
+                    color: r.couleur != null ? Color(r.couleur!) : RoutePalette.forRoute(r.id, r.activite),
                     strokeWidth: r.id == _hoveredRouteId ? 5 : 3,
+                    pattern: _patternFor(r),
                   ),
             ]),
             MarkerLayer(markers: [
@@ -177,6 +197,8 @@ class _MapScreenState extends State<MapScreen> {
           left: 12,
           right: 12,
           child: MapFiltersBar(
+            activiteFilter: _activiteFilter,
+            onActiviteFilter: (v) => setState(() => _activiteFilter = v),
             showSignalements: _showSignalements,
             showElements: _showElements,
             signalementFilter: _signalementFilter,
@@ -187,6 +209,8 @@ class _MapScreenState extends State<MapScreen> {
             onElementFilter: (v) => setState(() => _elementFilter = v),
           ),
         ),
+        if (_selectedSignalement == null && _selectedElement == null)
+          const Positioned(left: 12, bottom: 12, child: MapLegend()),
         if (hovered != null && _selectedSignalement == null && _selectedElement == null)
           Positioned(
             top: 12,
@@ -195,8 +219,15 @@ class _MapScreenState extends State<MapScreen> {
               child: Card(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Text(hovered.nom,
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(hovered.activite.icon, size: 16, color: hovered.activite.color),
+                      const SizedBox(width: 6),
+                      Text(hovered.titre,
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                    ],
+                  ),
                 ),
               ),
             ),

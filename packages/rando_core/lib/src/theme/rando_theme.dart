@@ -18,6 +18,9 @@ class RandoColors {
   static const ochreSoft = Color(0xFFFBEFD9);
   static const blue = Color(0xFF3B6FD9);
   static const blueSoft = Color(0xFFE3EBFA);
+  static const velo = Color(0xFF1F7A8C);
+  static const veloDeep = Color(0xFF145A68);
+  static const veloSoft = Color(0xFFDDEFF3);
   static const red = Color(0xFFD2452E);
   static const redSoft = Color(0xFFFBE4DF);
 
@@ -44,6 +47,8 @@ class RandoColors {
   // Map
   static const track = Color(0xFFE0521C);
   static const trackNight = Color(0xFFFF7A45);
+  static const trackVelo = Color(0xFF1D7CF2);
+  static const trackVeloNight = Color(0xFF5DA9FF);
   static const trackHalo = Color(0xB3FFFFFF);
 
   // Legacy aliases still used by some widgets.
@@ -60,11 +65,11 @@ class RandoColors {
 /// Shared radii and spacing.
 class RandoRadius {
   RandoRadius._();
-  static const card = 24.0;
-  static const tile = 20.0;
+  static const card = 16.0;
+  static const tile = 14.0;
   static const chip = 999.0;
   static const button = 999.0;
-  static const field = 16.0;
+  static const field = 12.0;
 }
 
 const String kRandoFont = 'packages/rando_core/Inter';
@@ -118,21 +123,21 @@ ThemeData buildRandoTheme({Brightness brightness = Brightness.light}) {
   final ink = scheme.onSurface;
   final soft = scheme.onSurfaceVariant;
   final text = base.textTheme.apply(bodyColor: ink, displayColor: ink).copyWith(
-        displayLarge: TextStyle(fontFamily: kRandoDisplayFont, fontSize: 40, fontWeight: FontWeight.w800, letterSpacing: -1.2, height: 1.05, color: ink),
-        displayMedium: TextStyle(fontFamily: kRandoDisplayFont, fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1.0, height: 1.08, color: ink),
-        displaySmall: TextStyle(fontFamily: kRandoDisplayFont, fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.8, height: 1.1, color: ink),
-        headlineLarge: TextStyle(fontFamily: kRandoDisplayFont, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.6, height: 1.15, color: ink),
-        headlineMedium: TextStyle(fontFamily: kRandoDisplayFont, fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.4, height: 1.2, color: ink),
-        headlineSmall: TextStyle(fontFamily: kRandoDisplayFont, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3, height: 1.2, color: ink),
-        titleLarge: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, letterSpacing: -0.3, color: ink),
-        titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.2, color: ink),
-        titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: ink),
-        bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, height: 1.45, color: ink),
-        bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.4, color: ink),
-        bodySmall: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, height: 1.35, color: soft),
-        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: ink),
-        labelMedium: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: soft),
-        labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.2, color: soft),
+        displayLarge: TextStyle(fontFamily: kRandoDisplayFont, fontSize: 36, fontWeight: FontWeight.w800, letterSpacing: -1.2, height: 1.05, color: ink),
+        displayMedium: TextStyle(fontFamily: kRandoDisplayFont, fontSize: 31, fontWeight: FontWeight.w800, letterSpacing: -1.0, height: 1.08, color: ink),
+        displaySmall: TextStyle(fontFamily: kRandoDisplayFont, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.8, height: 1.1, color: ink),
+        headlineLarge: TextStyle(fontFamily: kRandoDisplayFont, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.6, height: 1.15, color: ink),
+        headlineMedium: TextStyle(fontFamily: kRandoDisplayFont, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.4, height: 1.2, color: ink),
+        headlineSmall: TextStyle(fontFamily: kRandoDisplayFont, fontSize: 18.5, fontWeight: FontWeight.w700, letterSpacing: -0.3, height: 1.2, color: ink),
+        titleLarge: TextStyle(fontSize: 17.5, fontWeight: FontWeight.w700, letterSpacing: -0.3, color: ink),
+        titleMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: -0.2, color: ink),
+        titleSmall: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: ink),
+        bodyLarge: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, height: 1.45, color: ink),
+        bodyMedium: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w400, height: 1.4, color: ink),
+        bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, height: 1.35, color: soft),
+        labelLarge: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: ink),
+        labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: soft),
+        labelSmall: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, letterSpacing: 0.2, color: soft),
       );
 
   final pill = RoundedRectangleBorder(borderRadius: BorderRadius.circular(RandoRadius.button));
@@ -259,14 +264,14 @@ ThemeData buildRandoTheme({Brightness brightness = Brightness.light}) {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
     ),
     dialogTheme: DialogThemeData(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       backgroundColor: scheme.surface,
       titleTextStyle: text.headlineSmall,
       contentTextStyle: text.bodyLarge,
     ),
     bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: scheme.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       showDragHandle: true,
       dragHandleColor: scheme.outline,
     ),

@@ -66,6 +66,7 @@ class _ElementsScreenState extends State<ElementsScreen> {
                     itemCount: filtered.length,
                     itemBuilder: (context, i) => _ElementRow(
                       element: filtered[i],
+                      itineraire: data.itineraireById(filtered[i].itineraireId),
                       repo: repo,
                       onShowOnMap: widget.onShowOnMap,
                     ),
@@ -79,9 +80,13 @@ class _ElementsScreenState extends State<ElementsScreen> {
 
 class _ElementRow extends StatelessWidget {
   const _ElementRow(
-      {required this.element, required this.repo, required this.onShowOnMap});
+      {required this.element,
+      required this.itineraire,
+      required this.repo,
+      required this.onShowOnMap});
 
   final ElementRemarquable element;
+  final Itineraire? itineraire;
   final RandoRepository repo;
   final void Function(LatLng point, {String? title}) onShowOnMap;
 
@@ -112,8 +117,21 @@ class _ElementRow extends StatelessWidget {
                       StatusChip(label: e.statut.label, color: e.statut.color, dense: true),
                     ],
                   ),
-                  Text('${e.categorie.label} · ${e.itineraireNom}',
-                      style: const TextStyle(color: RandoColors.inkMuted, fontSize: 12)),
+                  Row(
+                    children: [
+                      if (itineraire != null) ...[
+                        Icon(itineraire!.activite.icon,
+                            size: 13, color: itineraire!.activite.color),
+                        const SizedBox(width: 4),
+                      ],
+                      Flexible(
+                        child: Text('${e.categorie.label} · ${e.itineraireNom}',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: RandoColors.inkMuted, fontSize: 12)),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 4),
                   Text(e.description, maxLines: 3, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),

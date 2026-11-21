@@ -20,10 +20,22 @@ class RouteMapView extends StatelessWidget {
   final List<ElementRemarquable> elements;
   final double height;
 
+  /// Dashed line for lanes under construction or provisional, solid otherwise.
+  StrokePattern get _pattern {
+    final statut = itineraire.statutReseau;
+    if (statut == StatutReseau.enTravaux || statut == StatutReseau.provisoire) {
+      // Not `const`: StrokePattern.dashed's assert reads segments.length,
+      // which isn't a valid constant expression for a List<double>.
+      return StrokePattern.dashed(segments: const [12, 8]);
+    }
+    return const StrokePattern.solid();
+  }
+
   @override
   Widget build(BuildContext context) {
     final bounds = itineraire.bounds.pad(120);
     final latLngBounds = LatLngBounds(bounds.southWest, bounds.northEast);
+    final lineColor = itineraire.isVelo ? (itineraire.couleur != null ? Color(itineraire.couleur!) : RandoColors.trackVelo) : RandoColors.track;
     return SizedBox(
       height: height,
       child: ClipRRect(
@@ -54,14 +66,16 @@ class RouteMapView extends StatelessWidget {
                       points: line,
                       color: RandoColors.trackHalo,
                       strokeWidth: 7,
+                      pattern: _pattern,
                     ),
                 ]),
                 PolylineLayer(polylines: [
                   for (final line in itineraire.tracks)
                     Polyline(
                       points: line,
-                      color: RandoColors.track,
+                      color: lineColor,
                       strokeWidth: 4,
+                      pattern: _pattern,
                     ),
                 ]),
                 MarkerLayer(markers: [

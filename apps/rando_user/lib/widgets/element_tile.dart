@@ -51,7 +51,7 @@ class ElementTile extends StatelessWidget {
                       children: [
                         StatusChip(
                           label: e.isValide
-                              ? "Validé par l'ARC"
+                              ? 'Validé'
                               : (e.isAuthor(uid) ? 'Votre proposition · ${e.statut.label.toLowerCase()}' : e.statut.label),
                           color: color,
                           icon: e.isValide ? Icons.verified_rounded : Icons.hourglass_top_rounded,

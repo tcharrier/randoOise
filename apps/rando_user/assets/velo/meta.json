@@ -1,0 +1,14 @@
+{
+  "dataset": {
+    "source_url": "https://geo.compiegnois.fr/documents/metiers/mob/itinerairecyclable_CA_de_la_R%C3%A9gion_de_Compi%C3%A8gne_et_de_la_Basse_Automne.gpkg",
+    "layer_name": "itinerairecyclable_CA_de_la_Région_de_Compiègne_et_de_la_Basse_Automne",
+    "crs_epsg": 2154
+  },
+  "build": {
+    "built_at": "2026-01-29T18:19:06.391953+00:00",
+    "source_sha256": "da67d872b779ece9595230d4819f721a20f69240f243043ff4ed81410d50341f",
+    "feature_count": 45,
+    "status": "success",
+    "message": ""
+  }
+}

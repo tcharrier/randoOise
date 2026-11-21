@@ -65,14 +65,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 28),
                     TextFormField(
                       controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
                       autofillHints: const [AutofillHints.username],
                       decoration: const InputDecoration(
-                        labelText: 'Adresse e-mail',
-                        prefixIcon: Icon(Icons.alternate_email),
+                        labelText: 'Identifiant',
+                        prefixIcon: Icon(Icons.person_outline),
                       ),
                       validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Veuillez saisir votre e-mail.'
+                          ? 'Veuillez saisir votre identifiant.'
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -115,6 +114,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                   strokeWidth: 2, color: Colors.white),
                             )
                           : const Text('Se connecter'),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Compte initial : admin / admin',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: RandoColors.inkMuted, fontSize: 12),
                     ),
                   ],
                 ),

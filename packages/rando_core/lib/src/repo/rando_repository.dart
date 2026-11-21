@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../import/source_importer.dart';
 import '../models/element_remarquable.dart';
@@ -112,8 +113,9 @@ class RandoRepository {
   Future<String> createSignalement(Signalement s) async {
     final ref = signalements.doc();
     // Not awaited on purpose: when offline the write is queued and the
-    // Future only completes once the server acknowledges it.
-    ref.set(s.toCreateMap());
+    // Future only completes once the server acknowledges it. A rule
+    // rejection must not surface as an unhandled asynchronous error.
+    ref.set(s.toCreateMap()).catchError((Object e) => debugPrint('createSignalement refusé : $e'));
     return ref.id;
   }
 
@@ -152,7 +154,7 @@ class RandoRepository {
 
   Future<String> createElement(ElementRemarquable e) async {
     final ref = elements.doc();
-    ref.set(e.toCreateMap());
+    ref.set(e.toCreateMap()).catchError((Object err) => debugPrint('createElement refusé : $err'));
     return ref.id;
   }
 

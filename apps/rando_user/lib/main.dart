@@ -13,6 +13,10 @@ import 'firebase_options.dart';
 import 'screens/home_screen.dart';
 import 'services/favorites_service.dart';
 import 'services/offline_service.dart';
+import 'services/ride_controller.dart';
+import 'services/sorties_service.dart';
+import 'services/velo_dataset_loader.dart';
+import 'services/weather_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,11 +31,17 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   final favorites = await FavoritesService.load();
   final offline = await OfflineService.create();
+  final velo = await VeloDatasetLoader.load();
   final state = AppState(
     repository: RandoRepository(FirebaseFirestore.instance),
     favorites: favorites,
     offline: offline,
     prefs: prefs,
+    weather: WeatherService(prefs),
+    sorties: SortiesService(prefs),
+    ride: RideController(),
+    veloSource: velo.source,
+    veloItineraires: velo.itineraires,
   );
   state.start();
 
@@ -46,14 +56,18 @@ Future<void> main() async {
 class RandoOiseApp extends StatelessWidget {
   const RandoOiseApp({super.key});
 
+  static final ThemeData _light = buildRandoTheme();
+  static final ThemeData _dark = buildRandoTheme(brightness: Brightness.dark);
+
   @override
   Widget build(BuildContext context) {
     final themeMode = context.select<AppState, ThemeMode>((s) => s.themeMode);
     return MaterialApp(
       title: 'Rando Oise',
       debugShowCheckedModeBanner: false,
-      theme: buildRandoTheme(),
-      darkTheme: buildRandoTheme(brightness: Brightness.dark),
+      theme: _light,
+      darkTheme: _dark,
+      themeAnimationDuration: Duration.zero,
       themeMode: themeMode,
       locale: const Locale('fr', 'FR'),
       supportedLocales: const [Locale('fr', 'FR'), Locale('en')],
@@ -77,15 +91,29 @@ class RandoOiseApp extends StatelessWidget {
   }
 }
 
+/// Outcome of an anonymous sign-in attempt.
+class SignInResult {
+  const SignInResult({this.uid, this.errorCode, this.errorMessage});
+  final String? uid;
+  final String? errorCode;
+  final String? errorMessage;
+}
+
 /// Signs the device in anonymously so reports can be attributed and voted
 /// once per device. Works without network once the session is cached.
-Future<String?> ensureSignedIn() async {
+Future<SignInResult> signInDetailed() async {
   final auth = FirebaseAuth.instance;
-  if (auth.currentUser != null) return auth.currentUser!.uid;
+  if (auth.currentUser != null) return SignInResult(uid: auth.currentUser!.uid);
   try {
     final cred = await auth.signInAnonymously();
-    return cred.user?.uid;
-  } catch (_) {
-    return null;
+    return SignInResult(uid: cred.user?.uid);
+  } on FirebaseAuthException catch (e) {
+    debugPrint('signInAnonymously: ${e.code} ${e.message}');
+    return SignInResult(errorCode: e.code, errorMessage: e.message);
+  } catch (e) {
+    debugPrint('signInAnonymously: $e');
+    return SignInResult(errorCode: 'unknown', errorMessage: '$e');
   }
 }
+
+Future<String?> ensureSignedIn() async => (await signInDetailed()).uid;
